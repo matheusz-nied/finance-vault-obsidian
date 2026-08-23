@@ -84,6 +84,8 @@ export interface PeriodReport extends DateRange {
 	balanceCents: MoneyCents;
 	spentByCategory: Record<string, MoneyCents>;
 	spentByAccount: Record<string, MoneyCents>;
+	contributedByCategory: Record<string, MoneyCents>;
+	contributedByAsset: Record<string, MoneyCents>;
 }
 
 export interface StorageDiagnostic {
