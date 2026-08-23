@@ -7,4 +7,5 @@
 5. Validar o ciclo padrão 10–9, gastos por cartão, aportes separados e somas mensais/anuais.
 6. Implementar modelos fixos que preencham receitas e despesas manualmente, com vínculo mensal sem estados persistidos.
 7. Exibir o checklist mensal de fixos e agrupar despesas por cartão no dashboard.
-8. Entregar lint, testes e build aprovados, documentação de instalação e vault local de demonstração.
+8. Criar compras parceladas com datas mensais ancoradas, centavos exatos e visão de compromissos futuros.
+9. Entregar lint, testes e build aprovados, documentação de instalação e vault local de demonstração.

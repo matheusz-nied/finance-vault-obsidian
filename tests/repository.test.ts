@@ -122,5 +122,8 @@ describe('repositório Markdown mensal', () => {
 		await repository.createMany(records);
 		const result = await repository.listRange({ start: '2026-08-01', end: '2026-10-31' });
 		expect(result.records.map((record) => record.id)).toEqual(['tx-aug', 'tx-sep', 'tx-oct']);
+		await repository.deleteMany(records.slice(1));
+		const remaining = await repository.listRange({ start: '2026-08-01', end: '2026-10-31' });
+		expect(remaining.records.map((record) => record.id)).toEqual(['tx-aug']);
 	});
 });

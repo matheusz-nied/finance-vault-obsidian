@@ -2,6 +2,10 @@ import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
 import { addMonths, formatLocalDate, isWithinRange, localDate, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
 import { cycleForDate, nextCycle, previousCycle } from '../domain/cycle';
 import { fixedTemplatesForMonth } from '../domain/fixedTemplates';
+import {
+	MAX_INSTALLMENT_COUNT,
+	summarizeActiveInstallmentPlans,
+} from '../domain/installments';
 import { formatBrl } from '../domain/money';
 import { calculateReport } from '../domain/reports';
 import { ConfirmModal } from '../modals/ConfirmModal';
@@ -68,15 +72,21 @@ export class DashboardView extends ItemView {
 		container.createDiv({ cls: 'finance-vault-loading', text: 'Carregando dados financeiros…' });
 		const period = this.currentPeriod();
 		const fixedPeriod = monthRange(this.anchor);
+		const installmentAnchor = todayLocal();
+		const installmentPeriod: DateRange = {
+			start: installmentAnchor,
+			end: addMonths(installmentAnchor, MAX_INSTALLMENT_COUNT),
+		};
 		try {
 			const transactionRequest = this.financePlugin.transactions.listRange(period);
 			const fixedTransactionRequest = period.start === fixedPeriod.start && period.end === fixedPeriod.end
 				? transactionRequest
 				: this.financePlugin.transactions.listRange(fixedPeriod);
-			const [transactionQuery, investmentQuery, fixedTransactionQuery] = await Promise.all([
+			const [transactionQuery, investmentQuery, fixedTransactionQuery, installmentTransactionQuery] = await Promise.all([
 				transactionRequest,
 				this.financePlugin.investments.listRange(period),
 				fixedTransactionRequest,
+				this.financePlugin.transactions.listRange(installmentPeriod),
 			]);
 			if (version !== this.renderVersion) {
 				return;
@@ -89,9 +99,11 @@ export class DashboardView extends ItemView {
 				...transactionQuery.diagnostics,
 				...investmentQuery.diagnostics,
 				...fixedDiagnostics,
+				...installmentTransactionQuery.diagnostics,
 			]);
 			this.renderSummary(container, report);
 			this.renderFixedTemplates(container, fixedTransactionQuery.records, period);
+			this.renderInstallmentPlans(container, installmentTransactionQuery.records, installmentAnchor);
 			if (this.mode === 'year') {
 				this.renderYearSummary(container, transactionQuery.records, investmentQuery.records);
 			}
@@ -103,6 +115,49 @@ export class DashboardView extends ItemView {
 			container.createDiv({
 				cls: 'finance-vault-error',
 				text: error instanceof Error ? error.message : 'Não foi possível carregar os dados.',
+			});
+		}
+	}
+
+	private renderInstallmentPlans(
+		container: HTMLElement,
+		transactions: readonly Transaction[],
+		asOf: string,
+	): void {
+		const plans = summarizeActiveInstallmentPlans(transactions, asOf);
+		if (plans.length === 0) {
+			return;
+		}
+		const section = container.createEl('section', { cls: 'finance-vault-section' });
+		section.createEl('h3', { text: 'Parcelamentos ativos' });
+		const list = section.createDiv({ cls: 'finance-vault-record-list' });
+		for (const plan of plans) {
+			const row = list.createDiv({ cls: 'finance-vault-record' });
+			const body = row.createDiv({ cls: 'finance-vault-record-body' });
+			body.createEl('strong', { text: plan.description });
+			body.createSpan({
+				text: `${this.accountName(plan.accountId)} · Próxima ${plan.next.installmentNumber}/${plan.installmentCount} em ${formatLocalDate(plan.next.date)}`,
+			});
+			body.createSpan({
+				text: `Total ${formatBrl(plan.totalCents)} · Restante ${formatBrl(plan.remainingCents)}`,
+			});
+			const actions = row.createDiv({ cls: 'finance-vault-record-actions' });
+			this.createIconButton(actions, 'pencil', 'Editar próxima parcela', () => {
+				this.openTransaction(plan.next);
+			});
+			this.createIconButton(actions, 'calendar-x-2', 'Cancelar parcelas restantes', () => {
+				new ConfirmModal(
+					this.app,
+					`Excluir ${plan.remaining.length} parcela(s) restante(s) de “${plan.description}”?`,
+					async () => {
+						try {
+							await this.financePlugin.transactions.deleteMany(plan.remaining);
+							await this.refresh();
+						} catch (error) {
+							new Notice(error instanceof Error ? error.message : 'Não foi possível cancelar as parcelas.');
+						}
+					},
+				).open();
 			});
 		}
 	}
@@ -165,13 +220,17 @@ export class DashboardView extends ItemView {
 	}
 
 	private renderDiagnostics(container: HTMLElement, diagnostics: readonly StorageDiagnostic[]): void {
-		if (diagnostics.length === 0) {
+		const unique = [...new Map(diagnostics.map((diagnostic) => [
+			`${diagnostic.path}:${diagnostic.line ?? ''}:${diagnostic.message}`,
+			diagnostic,
+		])).values()];
+		if (unique.length === 0) {
 			return;
 		}
 		const details = container.createEl('details', { cls: 'finance-vault-diagnostics' });
-		details.createEl('summary', { text: `${diagnostics.length} aviso(s) nos arquivos Markdown` });
+		details.createEl('summary', { text: `${unique.length} aviso(s) nos arquivos Markdown` });
 		const list = details.createEl('ul');
-		for (const diagnostic of diagnostics) {
+		for (const diagnostic of unique) {
 			list.createEl('li', {
 				text: `${diagnostic.path}${diagnostic.line ? `:${diagnostic.line}` : ''} — ${diagnostic.message}`,
 			});
@@ -330,7 +389,10 @@ export class DashboardView extends ItemView {
 			body.createEl('strong', { text: transaction.description });
 			const typeLabel = transaction.type === 'income' ? 'Receita' : 'Despesa';
 			const accountLabel = this.accountName(transaction.accountId);
-			body.createSpan({ text: `${formatLocalDate(transaction.date)} · ${typeLabel} · ${accountLabel}` });
+			const installmentLabel = transaction.installmentNumber && transaction.installmentCount
+				? ` · Parcela ${transaction.installmentNumber}/${transaction.installmentCount}`
+				: '';
+			body.createSpan({ text: `${formatLocalDate(transaction.date)} · ${typeLabel} · ${accountLabel}${installmentLabel}` });
 			const amount = item.createEl('strong', {
 				text: formatBrl(transaction.amountCents),
 				cls: transaction.type === 'income' ? 'is-positive' : 'is-negative',
@@ -381,13 +443,18 @@ export class DashboardView extends ItemView {
 	}
 
 	private openTransaction(initial?: Transaction, options: TransactionModalOptions = {}): void {
-		new TransactionModal(this.app, this.financePlugin.settings, initial, async ({ transaction, updateFixedTemplate }) => {
+		new TransactionModal(this.app, this.financePlugin.settings, initial, async ({ transactions, updateFixedTemplate }) => {
 			if (initial) {
+				const transaction = transactions[0];
+				if (!transaction) {
+					throw new Error('Nenhuma transação foi informada para edição.');
+				}
 				await this.financePlugin.transactions.update(initial.id, initial.date, transaction);
 			} else {
-				await this.financePlugin.transactions.create(transaction);
+				await this.financePlugin.transactions.createMany(transactions);
 			}
-			if (updateFixedTemplate) {
+			const transaction = transactions[0];
+			if (updateFixedTemplate && transaction) {
 				await this.financePlugin.updateFixedTemplateFromTransaction(transaction);
 			}
 			await this.refresh();

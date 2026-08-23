@@ -239,6 +239,36 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 		await this.serialized(() => this.deleteUnsafe(id, date));
 	}
 
+	async deleteMany(records: readonly T[]): Promise<void> {
+		await this.serialized(async () => {
+			for (const record of records) {
+				if (!(await this.contains(record.date, record.id))) {
+					throw new Error(`Registro ${record.id} não encontrado.`);
+				}
+			}
+			const deleted: T[] = [];
+			try {
+				for (const record of records) {
+					await this.deleteUnsafe(record.id, record.date);
+					deleted.push(record);
+				}
+			} catch (error) {
+				let rollbackFailed = false;
+				for (const record of deleted.reverse()) {
+					try {
+						await this.createUnsafe(record);
+					} catch {
+						rollbackFailed = true;
+					}
+				}
+				if (rollbackFailed) {
+					throw new Error('A exclusão falhou e alguns lançamentos podem precisar de revisão manual.');
+				}
+				throw error;
+			}
+		});
+	}
+
 	async recoverMove(move: PendingMove): Promise<void> {
 		if (move.entity !== this.entity) {
 			return;

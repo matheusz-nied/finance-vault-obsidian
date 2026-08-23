@@ -25,6 +25,7 @@ export interface InstallmentPlanSummary {
 	completedCount: number;
 	remainingCents: number;
 	next: Transaction;
+	remaining: Transaction[];
 }
 
 export function splitInstallmentAmounts(totalCents: number, installmentCount: number): number[] {
@@ -101,6 +102,7 @@ export function summarizeActiveInstallmentPlans(
 			completedCount: Math.max(0, (next.installmentNumber ?? 1) - 1),
 			remainingCents: safeSum(installments.map((installment) => installment.amountCents)),
 			next,
+			remaining: installments,
 		});
 	}
 	return summaries.sort((left, right) => left.next.date.localeCompare(right.next.date)

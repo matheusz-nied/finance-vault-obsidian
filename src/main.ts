@@ -62,9 +62,10 @@ export default class FinanceVaultPlugin extends Plugin {
 			id: 'add-transaction',
 			name: 'Adicionar transação',
 			callback: () => {
-				new TransactionModal(this.app, this.settings, undefined, async ({ transaction, updateFixedTemplate }) => {
-					await this.transactions.create(transaction);
-					if (updateFixedTemplate) {
+				new TransactionModal(this.app, this.settings, undefined, async ({ transactions, updateFixedTemplate }) => {
+					await this.transactions.createMany(transactions);
+					const transaction = transactions[0];
+					if (updateFixedTemplate && transaction) {
 						await this.updateFixedTemplateFromTransaction(transaction);
 					}
 					await this.refreshViews();

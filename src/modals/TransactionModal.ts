@@ -7,9 +7,13 @@ import {
 	type TextComponent,
 	type ToggleComponent,
 } from 'obsidian';
-import { isLocalDate, todayLocal } from '../domain/date';
+import { formatLocalDate, isLocalDate, todayLocal } from '../domain/date';
 import { createId } from '../domain/id';
-import { formatCentsForInput, parseBrlToCents } from '../domain/money';
+import {
+	buildInstallmentTransactions,
+	MAX_INSTALLMENT_COUNT,
+} from '../domain/installments';
+import { formatBrl, formatCentsForInput, parseBrlToCents } from '../domain/money';
 import { validateTransaction } from '../domain/validation';
 import type { FinanceSettings, Transaction, TransactionType } from '../types';
 
@@ -19,7 +23,7 @@ export interface TransactionModalOptions {
 }
 
 export interface TransactionSubmission {
-	transaction: Transaction;
+	transactions: Transaction[];
 	updateFixedTemplate: boolean;
 }
 
@@ -37,12 +41,17 @@ export class TransactionModal extends Modal {
 	onOpen(): void {
 		this.setTitle(this.initial ? 'Editar transação' : 'Nova transação');
 		this.modalEl.addClass('finance-vault-modal');
+		const editingInstallment = Boolean(this.initial?.installmentPlanId);
 		let fixedTemplateId = this.initial?.fixedTemplateId ?? this.options.fixedTemplateId ?? '';
 		let updateFixedTemplate = false;
 		let type: TransactionType = this.initial?.type ?? 'expense';
 		let date = this.initial?.date ?? this.options.date ?? todayLocal();
 		let description = this.initial?.description ?? '';
 		let amount = this.initial ? formatCentsForInput(this.initial.amountCents) : '';
+		let installmentMode = false;
+		let installmentCount = '2';
+		let firstInstallmentDate = date;
+		let firstInstallmentTouched = false;
 		const activeTemplates = this.settings.fixedTemplates.filter((template) => !template.archived
 			|| template.id === fixedTemplateId);
 		const templateAccountIds = new Set(activeTemplates.map((template) => template.accountId));
@@ -58,9 +67,11 @@ export class TransactionModal extends Modal {
 		let categoryDropdown: DropdownComponent;
 		let descriptionInput: TextComponent;
 		let amountInput: TextComponent;
+		let firstInstallmentInput: TextComponent;
+		let paymentDropdown: DropdownComponent;
 		let updateTemplateToggle: ToggleComponent;
 
-		new Setting(this.contentEl)
+		const fillSetting = new Setting(this.contentEl)
 			.setName('Preenchimento')
 			.setDesc('Um modelo apenas preenche os campos; o resultado é uma transação normal.')
 			.addDropdown((dropdown) => {
@@ -78,6 +89,7 @@ export class TransactionModal extends Modal {
 				.addOption('expense', 'Despesa')
 				.addOption('income', 'Receita')
 				.setValue(type)
+				.setDisabled(editingInstallment)
 				.onChange((value) => {
 					type = value as TransactionType;
 					refreshFields();
@@ -85,10 +97,16 @@ export class TransactionModal extends Modal {
 		});
 		typeSetting.setClass('finance-vault-field');
 
-		new Setting(this.contentEl).setName('Data').addText((text) => {
+		const dateSetting = new Setting(this.contentEl).setName('Data').addText((text) => {
 			text.inputEl.type = 'date';
 			return text.setValue(date).onChange((value) => {
+				const previous = date;
 				date = value;
+				if (!firstInstallmentTouched || firstInstallmentDate === previous) {
+					firstInstallmentDate = value;
+					firstInstallmentInput.setValue(value);
+				}
+				renderPreview();
 			});
 		});
 		new Setting(this.contentEl).setName('Conta').addDropdown((dropdown) => {
@@ -98,12 +116,14 @@ export class TransactionModal extends Modal {
 			}
 			return dropdown.setValue(accountId).onChange((value) => {
 				accountId = value;
+				refreshFields();
 			});
 		});
 		new Setting(this.contentEl).setName('Categoria').addDropdown((dropdown) => {
 			categoryDropdown = dropdown;
 			return dropdown.onChange((value) => {
 				categoryId = value;
+				renderPreview();
 			});
 		});
 		new Setting(this.contentEl).setName('Descrição').addText((text) => {
@@ -113,15 +133,66 @@ export class TransactionModal extends Modal {
 				.setValue(description)
 				.onChange((value) => {
 					description = value;
+					renderPreview();
 				});
 		});
-		new Setting(this.contentEl).setName('Valor').setDesc('Use o formato 1234,56.').addText((text) => {
+		const amountSetting = new Setting(this.contentEl).setName('Valor').setDesc('Use o formato 1234,56.').addText((text) => {
 			amountInput = text;
 			text.inputEl.inputMode = 'decimal';
 			return text.setPlaceholder('0,00').setValue(amount).onChange((value) => {
 				amount = value;
+				renderPreview();
 			});
 		});
+		const installmentInfoSetting = new Setting(this.contentEl)
+			.setName('Parcela')
+			.setDesc(editingInstallment
+				? `${this.initial?.installmentNumber}/${this.initial?.installmentCount} · Compra em ${formatLocalDate(this.initial?.installmentPurchaseDate ?? this.initial?.date ?? date)} · Total ${formatBrl(this.initial?.installmentTotalCents ?? this.initial?.amountCents ?? 0)}`
+				: '');
+		const paymentSetting = new Setting(this.contentEl)
+			.setName('Pagamento')
+			.setDesc('Parcelamentos criam uma despesa em cada mês.')
+			.addDropdown((dropdown) => {
+				paymentDropdown = dropdown;
+				return dropdown
+					.addOption('single', 'À vista')
+					.addOption('installment', 'Parcelada')
+					.setValue('single')
+					.onChange((value) => {
+						installmentMode = value === 'installment';
+						if (installmentMode && !firstInstallmentTouched) {
+							firstInstallmentDate = date;
+							firstInstallmentInput.setValue(date);
+						}
+						refreshFields();
+					});
+			});
+		const installmentCountSetting = new Setting(this.contentEl)
+			.setName('Quantidade de parcelas')
+			.setDesc(`Entre 2 e ${MAX_INSTALLMENT_COUNT}.`)
+			.addText((text) => {
+				text.inputEl.type = 'number';
+				text.inputEl.min = '2';
+				text.inputEl.max = String(MAX_INSTALLMENT_COUNT);
+				return text.setValue(installmentCount).onChange((value) => {
+					installmentCount = value;
+					renderPreview();
+				});
+			});
+		const firstInstallmentSetting = new Setting(this.contentEl)
+			.setName('Primeira parcela')
+			.setDesc('Use outro mês se a compra entrar somente na fatura seguinte.')
+			.addText((text) => {
+				firstInstallmentInput = text;
+				text.inputEl.type = 'date';
+				return text.setValue(firstInstallmentDate).onChange((value) => {
+					firstInstallmentTouched = true;
+					firstInstallmentDate = value;
+					renderPreview();
+				});
+			});
+		const previewSetting = new Setting(this.contentEl).setName('Prévia das parcelas');
+		const preview = previewSetting.controlEl.createDiv({ cls: 'finance-vault-installment-preview' });
 		const updateTemplateSetting = new Setting(this.contentEl)
 			.setName('Atualizar modelo')
 			.setDesc('Use quando a conta, categoria ou valor padrão mudou permanentemente.')
@@ -131,6 +202,48 @@ export class TransactionModal extends Modal {
 					updateFixedTemplate = value;
 				});
 			});
+
+		const canInstallment = (): boolean => !this.initial
+			&& !fixedTemplateId
+			&& type === 'expense'
+			&& this.settings.accounts.find((account) => account.id === accountId)?.kind === 'credit-card';
+
+		const renderPreview = (): void => {
+			preview.empty();
+			if (!installmentMode || !canInstallment()) {
+				return;
+			}
+			try {
+				const installments = buildInstallmentTransactions({
+					planId: 'preview',
+					purchaseDate: date,
+					firstInstallmentDate,
+					description: description || 'Compra parcelada',
+					accountId,
+					categoryId,
+					totalCents: parseBrlToCents(amount),
+					installmentCount: Number(installmentCount),
+					createdAt: new Date().toISOString(),
+				}, (number) => `preview-${number}`);
+				const visible = installments.length <= 7
+					? installments
+					: [...installments.slice(0, 4), ...installments.slice(-2)];
+				const list = preview.createEl('ul');
+				for (const installment of visible) {
+					if (installments.length > 7 && installment === visible[4]) {
+						list.createEl('li', { text: '…' });
+					}
+					list.createEl('li', {
+						text: `${installment.installmentNumber}/${installment.installmentCount} · ${formatLocalDate(installment.date)} · ${formatBrl(installment.amountCents)}`,
+					});
+				}
+			} catch (error) {
+				preview.createSpan({
+					cls: 'finance-vault-period',
+					text: error instanceof Error ? error.message : 'Preencha os dados para visualizar as parcelas.',
+				});
+			}
+		};
 
 		const refreshFields = (): void => {
 			typeDropdown.setValue(type);
@@ -152,7 +265,20 @@ export class TransactionModal extends Modal {
 					: '';
 			}
 			categoryDropdown.setValue(categoryId);
-			updateTemplateSetting.settingEl.toggle(Boolean(fixedTemplateId));
+			if (!canInstallment()) {
+				installmentMode = false;
+				paymentDropdown.setValue('single');
+			}
+			fillSetting.settingEl.toggle(!editingInstallment);
+			installmentInfoSetting.settingEl.toggle(editingInstallment);
+			paymentSetting.settingEl.toggle(canInstallment());
+			installmentCountSetting.settingEl.toggle(installmentMode && canInstallment());
+			firstInstallmentSetting.settingEl.toggle(installmentMode && canInstallment());
+			previewSetting.settingEl.toggle(installmentMode && canInstallment());
+			updateTemplateSetting.settingEl.toggle(Boolean(fixedTemplateId) && !installmentMode);
+			dateSetting.setName(editingInstallment ? 'Data da parcela' : installmentMode ? 'Data da compra' : 'Data');
+			amountSetting.setName(editingInstallment ? 'Valor da parcela' : installmentMode ? 'Valor total' : 'Valor');
+			renderPreview();
 		};
 
 		const applyTemplate = (id: string): void => {
@@ -186,6 +312,26 @@ export class TransactionModal extends Modal {
 						throw new Error('Informe uma data válida.');
 					}
 					const now = new Date().toISOString();
+					if (installmentMode && canInstallment()) {
+						const transactions = buildInstallmentTransactions({
+							planId: createId('installment'),
+							purchaseDate: date,
+							firstInstallmentDate,
+							description: description.trim(),
+							accountId,
+							categoryId,
+							totalCents: parseBrlToCents(amount),
+							installmentCount: Number(installmentCount),
+							createdAt: now,
+						}, () => createId('tx'));
+						for (const transaction of transactions) {
+							validateTransaction(transaction, this.settings);
+						}
+						await this.onSubmit({ transactions, updateFixedTemplate: false });
+						new Notice(`${transactions.length} parcelas foram criadas.`);
+						this.close();
+						return;
+					}
 					const transaction: Transaction = {
 						id: this.initial?.id ?? createId('tx'),
 						date,
@@ -193,13 +339,18 @@ export class TransactionModal extends Modal {
 						accountId,
 						categoryId: categoryId || undefined,
 						fixedTemplateId: fixedTemplateId || undefined,
+						installmentPlanId: this.initial?.installmentPlanId,
+						installmentNumber: this.initial?.installmentNumber,
+						installmentCount: this.initial?.installmentCount,
+						installmentTotalCents: this.initial?.installmentTotalCents,
+						installmentPurchaseDate: this.initial?.installmentPurchaseDate,
 						description: description.trim(),
 						amountCents: parseBrlToCents(amount),
 						createdAt: this.initial?.createdAt ?? now,
 						updatedAt: this.initial ? now : undefined,
 					};
 					validateTransaction(transaction, this.settings);
-					await this.onSubmit({ transaction, updateFixedTemplate });
+					await this.onSubmit({ transactions: [transaction], updateFixedTemplate });
 					this.close();
 				} catch (error) {
 					new Notice(error instanceof Error ? error.message : 'Não foi possível salvar a transação.');

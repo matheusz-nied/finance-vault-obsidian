@@ -11,6 +11,7 @@ Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. El
 - Modelos fixos de receita e despesa com lançamento manual e valor editável.
 - Checklist mensal dos modelos já lançados, sem estados financeiros adicionais.
 - Gastos agrupados por cartão de crédito no dashboard.
+- Compras parceladas com prévia, distribuição exata dos centavos e compromissos futuros.
 - Aportes separados das despesas de consumo.
 - Valores armazenados em centavos inteiros e exibidos em BRL.
 - Interface em português, responsiva e compatível com temas claros e escuros.
@@ -35,6 +36,12 @@ As tabelas gerenciadas são delimitadas por comentários `finance-vault:table:v1
 Um lançamento criado a partir de um modelo guarda apenas o `fixedTemplateId`. O registro continua sendo uma receita ou despesa normal; editar seu valor ou sua data não cria uma segunda transação. Modelos são configurados em **Configurações → Finance Vault → Modelos fixos**.
 
 O botão **Lançar** sugere a data âncora do painel, mantendo o novo registro dentro do período visível. Se a data for alterada para fora de um ciclo exibido, o checklist mensal sinaliza isso e os totais continuam respeitando estritamente o período selecionado.
+
+## Compras parceladas
+
+Ao criar uma despesa em uma conta do tipo **Cartão de crédito**, selecione **Pagamento → Parcelada**. Informe o valor total, a quantidade e a data da primeira parcela. O plugin mostra uma prévia e, após a confirmação, cria uma transação por mês ligada pelo mesmo `installmentPlanId`.
+
+Parcelas usam o dia da primeira parcela como âncora. Em meses curtos, a data é ajustada ao último dia disponível sem alterar a âncora dos meses seguintes. O dashboard mostra o total ainda comprometido e permite editar a próxima parcela ou cancelar todas as restantes com confirmação.
 
 Configurações internas ficam no `data.json` do plugin por meio de `Plugin.loadData()` e `Plugin.saveData()`.
 
@@ -87,7 +94,7 @@ O build gera `main.js` na raiz. A vault de desenvolvimento em `test-vault/` come
 
 - Sem cotação, rentabilidade, quantidade ou preço médio de investimentos.
 - Sem importação bancária, sincronização própria ou integrações com corretoras.
-- Sem parcelamento avançado, orçamento, metas ou notificações.
+- Sem orçamento, metas ou notificações.
 - O cartão não possui fechamento detalhado de fatura nem cálculo de dívida acumulada.
 - BRL é a única moeda suportada.
 
