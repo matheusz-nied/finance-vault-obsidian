@@ -1,93 +1,50 @@
 # Finance Vault
 
-Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. Registre receitas, despesas, cartões, gastos fixos, compras parceladas e aportes sem tirar seus dados da própria vault.
+Your finances fit in a Markdown file. Literally.
 
-O plugin foi pensado para um acompanhamento financeiro simples: você lança o que realmente recebeu, gastou ou aportou e consulta os resultados por mês, ciclo financeiro ou ano.
+Finance Vault is a personal finance plugin for Obsidian that keeps everything inside your own vault: every transaction becomes a line in a `.md` file you can read, version in git, or open in any editor. No account, no cloud, no third-party server knowing how much you spent on delivery this month.
 
-## Principais recursos
+If you already use Obsidian to organize your life, now your money lives there too.
 
-- Receitas e despesas com conta, categoria, data e descrição.
-- Contas em dinheiro, bancárias e cartões de crédito.
-- Gastos agrupados por cartão e por categoria.
-- Modelos fixos para lançar rapidamente salários, assinaturas e contas recorrentes.
-- Compras parceladas com geração automática das parcelas futuras.
-- Aportes separados das despesas de consumo.
-- Gráficos de gastos e aportes com valores e porcentagens.
-- Visões por mês, ciclo financeiro e ano.
-- Armazenamento em arquivos Markdown legíveis.
-- Funcionamento offline, sem conta, anúncios ou telemetria.
-- Interface em português e valores em real brasileiro (BRL).
+## Why use this?
 
-## Primeiros passos
+Because spreadsheets are a chore and banking apps show you ads.
 
-1. Abra **Configurações → Finance Vault**.
-2. Cadastre as contas que você usa, como dinheiro, banco e cartões de crédito.
-3. Revise ou crie as categorias de receitas e despesas.
-4. Se desejar, cadastre modelos fixos para lançamentos recorrentes.
-5. Abra o Finance Vault pelo ícone de carteira na barra lateral ou pelo comando **Abrir dashboard**.
-6. Use **Nova transação** para receitas e despesas e **Novo aporte** para investimentos.
-7. Alterne entre **Mês**, **Ciclo** e **Ano** para consultar períodos diferentes.
+- **Your data is yours alone.** Zero network calls, zero telemetry, zero ads. If this plugin vanished from the face of the earth tomorrow, your records are still there, in plain text.
+- **Logging a transaction takes seconds.** Account, category, amount, date, description. Done.
+- **Your credit card is no longer a mystery.** Installment purchase? The plugin creates every month's installment for you, cents included.
+- **Those same fixed expenses every month?** Set them up once (salary, rent, Netflix) and log them with one click from the monthly checklist.
+- **Investments kept apart from everyday spending.** A contribution is a contribution, an expense is an expense — in the reports, they never mix.
+- **Works on your phone.** Responsive interface, light and dark themes, fully offline.
 
-## Como os lançamentos funcionam
+## What it does
 
-### Contas
+**Accounts that match how you actually use money:** cash, bank accounts, and credit cards. Expenses group by card and by category, so you can see exactly what is eating your budget.
 
-O tipo da conta classifica a origem do lançamento:
+**Fixed templates:** salary, subscriptions, recurring bills — set them up once and forget about them. Every month the checklist shows what's left to log. Important: creating a template doesn't touch your totals. The amount only counts once you click **Post** (and you can edit before confirming, because the electricity bill is never the same twice).
 
-- **Dinheiro:** pagamentos ou recebimentos em espécie.
-- **Conta bancária:** movimentações realizadas em conta corrente, poupança ou conta digital.
-- **Cartão de crédito:** compras feitas no cartão. Esse tipo habilita compras parceladas e o agrupamento de gastos por cartão.
+**Installment purchases:** bought something in 10x on your card? Enter the total, the number of installments, and the first due date. The plugin creates one expense per month, splits the cents without changing the total, and shows active installments in the dashboard — with options to edit the next installment or cancel the remaining ones.
 
-As contas ajudam a organizar e filtrar os registros. O plugin ainda não faz conciliação bancária nem calcula automaticamente o saldo disponível de cada conta.
+**Contributions:** track investments by type (fixed income, stocks, REITs, ETFs, crypto...) or by asset, with value and percentage charts. These are the totals you contributed in the period — the plugin doesn't try to guess returns or market prices.
 
-### Modelos fixos
+**Three views of the same money:**
+- **Month** — the classic, day 1 to the last day.
+- **Cycle** — a configurable window that can span two months (by default, from the 10th of one month to the 9th of the next). If your paycheck lands on the 10th, the cycle is the view that finally makes sense to you.
+- **Year** — the big picture.
 
-Um modelo fixo é um atalho para preencher uma transação recorrente, como salário, aluguel, energia ou assinatura.
+Transactions always live in the file of the month they actually happened in. Cycles are just views — the plugin never moves your records around.
 
-Cadastrar o modelo não altera seus totais. O valor somente entra no relatório depois que você seleciona **Lançar** no checklist mensal. A transação criada pode ser editada normalmente e, se o valor padrão mudou, também pode atualizar o modelo.
+## Up and running in 2 minutes
 
-### Compras parceladas
+1. Open **Settings → Finance Vault**.
+2. Add your accounts (wallet, bank, cards).
+3. Tweak the categories to your liking.
+4. Click the wallet icon in the sidebar (or run the **Open dashboard** command).
+5. Log your first transaction. Done — you're now tracking your finances.
 
-Ao criar uma despesa em uma conta do tipo **Cartão de crédito**, selecione **Pagamento → Parcelada**. Informe:
+Fixed templates and other refinements you can set up as you feel the need.
 
-- O valor total da compra.
-- A quantidade de parcelas.
-- A data da compra.
-- A data da primeira parcela.
-
-O plugin mostra uma prévia e cria uma despesa em cada mês. Os centavos são distribuídos sem alterar o valor total. Em meses curtos, a parcela usa o último dia disponível e mantém o dia original nos meses seguintes.
-
-O dashboard mostra os parcelamentos ativos e permite editar a próxima parcela ou cancelar as parcelas restantes.
-
-### Investimentos
-
-Os investimentos são registrados como aportes e ficam separados das despesas de consumo. O dashboard permite agrupar os aportes:
-
-- Por tipo, como renda fixa, ação, FII, ETF ou cripto.
-- Por ativo, usando o nome informado no lançamento.
-
-Os valores representam o total aportado no período selecionado. Eles não representam o valor atual, a rentabilidade ou a cotação da carteira.
-
-## Períodos e ciclo financeiro
-
-O dashboard possui três visões:
-
-- **Mês:** primeiro ao último dia do mês-calendário.
-- **Ciclo:** intervalo configurável que pode atravessar dois meses.
-- **Ano:** primeiro ao último dia do ano.
-
-O ciclo inicial começa no dia 10 e termina no dia 9 do mês seguinte. Por exemplo:
-
-- 09/08 pertence ao ciclo 10/07–09/08.
-- 10/08 inicia o ciclo 10/08–09/09.
-- 09/09 é o último dia desse ciclo.
-- 10/09 inicia o ciclo seguinte.
-
-Novas regras de ciclo podem ter vigência futura. Dias 29, 30 e 31 são ajustados ao último dia existente em meses mais curtos.
-
-## Armazenamento local
-
-Por padrão, os registros ficam em:
+## Where your data lives
 
 ```text
 Financas/
@@ -97,57 +54,44 @@ Financas/
     └── YYYY-MM.md
 ```
 
-Cada registro pertence ao arquivo do mês de sua data real. Ciclos são apenas visões calculadas e nunca movem registros entre arquivos.
-
-As tabelas gerenciadas são delimitadas por comentários `finance-vault:table:v1`. Conteúdo fora desses marcadores e colunas adicionais são preservados. Linhas inválidas ou IDs duplicados aparecem como avisos no dashboard para evitar perda silenciosa de dados.
-
-As configurações ficam no `data.json` do plugin por meio da API oficial `Plugin.loadData()` e `Plugin.saveData()`.
+Markdown files, one per month. The plugin's tables sit between `finance-vault:table:v1` markers — anything you write outside them (notes, links, whatever) is preserved. If a line turns out invalid or has a duplicated ID, the dashboard warns you instead of silently deleting it.
 
 > [!IMPORTANT]
-> Mantenha backups da sua vault. O Finance Vault ajuda a organizar registros pessoais, mas não substitui extratos bancários, documentos fiscais ou orientação financeira profissional.
+> Back up your vault. Finance Vault keeps your personal records organized, but it's no substitute for bank statements or advice from a professional.
 
-## Instalação
+## Installation
 
-### Plugins da comunidade
+### From the Obsidian community directory
 
-Depois da publicação no diretório oficial:
+1. **Settings → Community plugins → Browse**.
+2. Search for **Finance Vault**.
+3. Install and enable.
 
-1. Abra **Configurações → Plugins da comunidade** no Obsidian.
-2. Selecione **Explorar** e procure por **Finance Vault**.
-3. Selecione **Instalar** e depois **Ativar**.
+### Manual (or before it hits the directory)
 
-### Instalação manual
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/matheusz-nied/finance-vault-obsidian/releases/latest).
+2. Create the folder `<your-vault>/.obsidian/plugins/finance-vault/`.
+3. Copy the three files into it.
+4. Restart Obsidian and enable the plugin.
 
-1. Baixe `main.js`, `manifest.json` e `styles.css` na [release mais recente](https://github.com/matheusz-nied/finance-vault-obsidian/releases/latest).
-2. Crie `<sua-vault>/.obsidian/plugins/finance-vault/`.
-3. Copie os três arquivos para essa pasta.
-4. Reinicie o Obsidian ou atualize a lista de plugins instalados.
-5. Ative **Finance Vault** em **Plugins da comunidade**.
+You can also test it via [BRAT](https://github.com/TfTHacker/obsidian42-brat) using this repository's URL.
 
-Para testes antes da entrada no diretório oficial, o plugin também pode ser instalado pelo [BRAT](https://github.com/TfTHacker/obsidian42-brat) usando a URL deste repositório.
+## What it doesn't do (yet)
 
-## Privacidade e compatibilidade
+Being honest, because money is serious business:
 
-- Nenhum dado financeiro sai da vault.
-- Não existem chamadas de rede, contas, anúncios ou telemetria.
-- O plugin usa a API do Obsidian para leitura e escrita.
-- Não utiliza APIs de Node.js ou Electron em runtime.
-- `isDesktopOnly` é `false` e a interface é responsiva.
-- Compatível com temas claros e escuros.
+- Only works in Brazilian reais (BRL).
+- No bank statement import or reconciliation.
+- Doesn't calculate each account's balance.
+- No market quotes, average price, or investment returns.
+- No budgets, goals, notifications, or detailed credit card statements.
+- No built-in sync — use whatever you already use for your vault (Syncthing, Obsidian Sync, git, your pick).
 
-## Limitações atuais
+If something on that list is a dealbreaker, [open an issue](https://github.com/matheusz-nied/finance-vault-obsidian/issues) — suggestions are welcome. Just don't include personal financial data in your report.
 
-- Somente BRL.
-- Sem importação ou conciliação bancária.
-- Sem cálculo automático do saldo de cada conta.
-- Sem cotação, quantidade, preço médio ou rentabilidade de investimentos.
-- Sem orçamento, metas ou notificações.
-- Sem fechamento detalhado de fatura ou cálculo de dívida acumulada do cartão.
-- Sem sincronização própria; use o método de sincronização da sua vault.
+## Development
 
-## Desenvolvimento
-
-Requisitos: Node.js 20 ou superior e npm.
+Requires Node.js 20+ and npm.
 
 ```bash
 git clone https://github.com/matheusz-nied/finance-vault-obsidian.git
@@ -156,9 +100,9 @@ npm install
 npm run dev
 ```
 
-A vault de desenvolvimento em `test-vault/` contém um link para a raiz do projeto. Abra essa pasta no Obsidian usando **Open folder as vault**.
+The test vault lives in `test-vault/` — open it in Obsidian with **Open folder as vault**.
 
-Verificações obrigatórias:
+Before any delivery:
 
 ```bash
 npm test
@@ -166,12 +110,6 @@ npm run lint
 npm run build
 ```
 
-O build de produção gera `main.js` na raiz. Esse arquivo é distribuído nas releases e não é versionado no repositório.
+## License
 
-## Problemas e sugestões
-
-Use as [issues do GitHub](https://github.com/matheusz-nied/finance-vault-obsidian/issues) para relatar bugs ou sugerir melhorias. Não inclua dados financeiros pessoais, conteúdo da sua vault ou outras informações sensíveis nos relatos.
-
-## Licença
-
-Finance Vault é distribuído sob a licença [0BSD](LICENSE).
+[0BSD](LICENSE). Make good use of it.
