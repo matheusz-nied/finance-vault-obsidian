@@ -11,6 +11,8 @@ Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. El
 - Modelos fixos de receita e despesa com lançamento manual e valor editável.
 - Checklist mensal dos modelos já lançados, sem estados financeiros adicionais.
 - Gastos agrupados por cartão de crédito no dashboard.
+- Gráfico de rosca para gastos por categoria, com porcentagens e valores.
+- Gráfico de aportes com alternância entre tipo de investimento e ativo.
 - Compras parceladas com prévia, distribuição exata dos centavos e compromissos futuros.
 - Aportes separados das despesas de consumo.
 - Valores armazenados em centavos inteiros e exibidos em BRL.
@@ -89,6 +91,8 @@ O build gera `main.js` na raiz. A vault de desenvolvimento em `test-vault/` come
 - Não há chamadas de rede, contas, anúncios ou telemetria.
 - O plugin usa somente a API do Obsidian; não importa Node.js, Electron, `fs` ou `path` em runtime.
 - `isDesktopOnly` é `false`; o layout é adaptado para celular.
+
+Os gráficos limitam a quantidade de segmentos visíveis e agrupam os menores valores em **Outros**, mantendo a legenda legível. O gráfico de investimentos representa o valor aportado no período selecionado, não o valor de mercado atual da carteira.
 
 ## Limitações do MVP
 

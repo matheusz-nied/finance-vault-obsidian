@@ -1,4 +1,5 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
+import { prepareChartSegments, type ChartSegment } from '../domain/chart';
 import { addMonths, formatLocalDate, isWithinRange, localDate, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
 import { cycleForDate, nextCycle, previousCycle } from '../domain/cycle';
 import { fixedTemplatesForMonth } from '../domain/fixedTemplates';
@@ -24,6 +25,8 @@ import type FinanceVaultPlugin from '../main';
 
 export const FINANCE_VAULT_VIEW = 'finance-vault-dashboard';
 
+type InvestmentChartGroup = 'category' | 'asset';
+
 const INVESTMENT_LABELS: Record<InvestmentCategory, string> = {
 	'fixed-income': 'Renda fixa',
 	stock: 'Ação',
@@ -37,6 +40,7 @@ export class DashboardView extends ItemView {
 	private mode: ReportMode = 'cycle';
 	private anchor = todayLocal();
 	private transactionTypeFilter = 'all';
+	private investmentChartGroup: InvestmentChartGroup = 'category';
 	private search = '';
 	private renderVersion = 0;
 
@@ -245,14 +249,24 @@ export class DashboardView extends ItemView {
 		this.renderMetric(cards, 'Saldo', report.balanceCents, report.balanceCents >= 0 ? 'is-positive' : 'is-negative');
 
 		const categories = Object.entries(report.spentByCategory).sort((left, right) => right[1] - left[1]);
-		if (categories.length > 0) {
-			const section = container.createEl('section', { cls: 'finance-vault-section' });
-			section.createEl('h3', { text: 'Gastos por categoria' });
-			const list = section.createDiv({ cls: 'finance-vault-category-list' });
-			for (const [categoryId, amount] of categories) {
-				const item = list.createDiv({ cls: 'finance-vault-category-item' });
-				item.createSpan({ text: this.categoryName(categoryId) });
-				item.createEl('strong', { text: formatBrl(amount) });
+		if (categories.length > 0 || report.contributedCents > 0) {
+			const charts = container.createDiv({ cls: 'finance-vault-chart-grid' });
+			if (categories.length > 0) {
+				const card = charts.createEl('section', { cls: 'finance-vault-chart-card' });
+				card.createEl('h3', { text: 'Gastos por categoria' });
+				card.createEl('p', {
+					cls: 'finance-vault-chart-description',
+					text: 'Distribuição das despesas no período selecionado.',
+				});
+				const segments = prepareChartSegments(categories.map(([categoryId, amountCents]) => ({
+					key: categoryId,
+					label: this.categoryName(categoryId),
+					amountCents,
+				})));
+				this.renderDonutChart(card, segments, report.spentCents, 'Total gasto');
+			}
+			if (report.contributedCents > 0) {
+				this.renderInvestmentChart(charts, report);
 			}
 		}
 
@@ -268,6 +282,86 @@ export class DashboardView extends ItemView {
 				item.createEl('strong', { text: formatBrl(report.spentByAccount[account.id] ?? 0) });
 			}
 		}
+	}
+
+	private renderInvestmentChart(container: HTMLElement, report: PeriodReport): void {
+		const card = container.createEl('section', { cls: 'finance-vault-chart-card' });
+		const header = card.createDiv({ cls: 'finance-vault-chart-header' });
+		header.createEl('h3', { text: 'Investimentos' });
+		const toggle = header.createDiv({
+			cls: 'finance-vault-chart-toggle',
+			attr: { role: 'group', 'aria-label': 'Agrupar investimentos' },
+		});
+		for (const [group, label] of [['category', 'Por tipo'], ['asset', 'Por ativo']] as const) {
+			const button = toggle.createEl('button', { text: label });
+			button.setAttr('type', 'button');
+			button.toggleClass('is-active', this.investmentChartGroup === group);
+			button.setAttr('aria-pressed', String(this.investmentChartGroup === group));
+			button.addEventListener('click', () => {
+				this.investmentChartGroup = group;
+				void this.refresh();
+			});
+		}
+		card.createEl('p', {
+			cls: 'finance-vault-chart-description',
+			text: 'Valor aportado no período — não representa o valor atual.',
+		});
+		const amounts = this.investmentChartGroup === 'category'
+			? report.contributedByCategory
+			: report.contributedByAsset;
+		const segments = prepareChartSegments(Object.entries(amounts).map(([key, amountCents]) => ({
+			key,
+			label: this.investmentChartGroup === 'category'
+				? INVESTMENT_LABELS[key as InvestmentCategory] ?? key
+				: key,
+			amountCents,
+		})));
+		this.renderDonutChart(card, segments, report.contributedCents, 'Total aportado');
+	}
+
+	private renderDonutChart(
+		container: HTMLElement,
+		segments: readonly ChartSegment[],
+		totalCents: number,
+		totalLabel: string,
+	): void {
+		const content = container.createDiv({ cls: 'finance-vault-donut-layout' });
+		const visual = content.createDiv({ cls: 'finance-vault-donut', attr: { 'aria-hidden': 'true' } });
+		let accumulatedCents = 0;
+		const stops = segments.map((segment, index) => {
+			const start = accumulatedCents / totalCents * 100;
+			accumulatedCents += segment.amountCents;
+			const end = index === segments.length - 1 ? 100 : accumulatedCents / totalCents * 100;
+			return `var(--finance-vault-chart-color-${index}) ${start.toFixed(3)}% ${end.toFixed(3)}%`;
+		});
+		visual.style.backgroundImage = `conic-gradient(${stops.join(', ')})`;
+		const center = visual.createDiv({ cls: 'finance-vault-donut-center' });
+		center.createSpan({ text: totalLabel });
+		center.createEl('strong', { text: formatBrl(totalCents) });
+
+		const legend = content.createEl('ul', { cls: 'finance-vault-chart-legend' });
+		for (const [index, segment] of segments.entries()) {
+			const item = legend.createEl('li');
+			item.createSpan({
+				cls: `finance-vault-chart-swatch finance-vault-chart-swatch-${index}`,
+				attr: { 'aria-hidden': 'true' },
+			});
+			const name = item.createDiv({ cls: 'finance-vault-chart-legend-name' });
+			name.createSpan({ text: segment.label });
+			name.createEl('small', { text: this.formatPercentage(segment.amountCents, totalCents) });
+			item.createEl('strong', { text: formatBrl(segment.amountCents) });
+		}
+	}
+
+	private formatPercentage(amountCents: number, totalCents: number): string {
+		const ratio = totalCents > 0 ? amountCents / totalCents : 0;
+		if (ratio > 0 && ratio < 0.001) {
+			return '< 0,1%';
+		}
+		return new Intl.NumberFormat('pt-BR', {
+			style: 'percent',
+			maximumFractionDigits: 1,
+		}).format(ratio);
 	}
 
 	private renderFixedTemplates(
