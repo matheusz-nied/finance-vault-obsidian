@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepareChartSegments } from '../src/domain/chart';
+import { calculateDonutSlices, prepareChartSegments } from '../src/domain/chart';
 
 describe('segmentos dos gráficos', () => {
 	it('ordena os valores do maior para o menor e ignora zeros', () => {
@@ -29,5 +29,19 @@ describe('segmentos dos gráficos', () => {
 			label: 'Outros (2)',
 			amountCents: 1500,
 		});
+	});
+
+	it('calcula fatias contínuas que completam a rosca', () => {
+		const result = calculateDonutSlices([
+			{ key: 'a', label: 'A', amountCents: 5000 },
+			{ key: 'b', label: 'B', amountCents: 3000 },
+			{ key: 'c', label: 'C', amountCents: 2000 },
+		], 10000);
+
+		expect(result.map(({ offsetPercentage, percentage }) => ({ offsetPercentage, percentage }))).toEqual([
+			{ offsetPercentage: 0, percentage: 50 },
+			{ offsetPercentage: 50, percentage: 30 },
+			{ offsetPercentage: 80, percentage: 20 },
+		]);
 	});
 });

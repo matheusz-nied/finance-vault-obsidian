@@ -6,6 +6,11 @@ export interface ChartSegment {
 	amountCents: number;
 }
 
+export interface DonutSlice extends ChartSegment {
+	offsetPercentage: number;
+	percentage: number;
+}
+
 export function prepareChartSegments(
 	items: readonly ChartSegment[],
 	maximumSegments = 6,
@@ -29,4 +34,21 @@ export function prepareChartSegments(
 			amountCents: safeSum(remaining.map((item) => item.amountCents)),
 		},
 	];
+}
+
+export function calculateDonutSlices(
+	segments: readonly ChartSegment[],
+	totalCents: number,
+): DonutSlice[] {
+	let offsetPercentage = 0;
+	return segments.map((segment, index) => {
+		const percentage = totalCents > 0
+			? index === segments.length - 1
+				? 100 - offsetPercentage
+				: segment.amountCents / totalCents * 100
+			: 0;
+		const slice = { ...segment, offsetPercentage, percentage };
+		offsetPercentage += percentage;
+		return slice;
+	});
 }

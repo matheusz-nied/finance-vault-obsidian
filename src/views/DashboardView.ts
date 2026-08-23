@@ -1,5 +1,9 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
-import { prepareChartSegments, type ChartSegment } from '../domain/chart';
+import {
+	calculateDonutSlices,
+	prepareChartSegments,
+	type ChartSegment,
+} from '../domain/chart';
 import { addMonths, formatLocalDate, isWithinRange, localDate, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
 import { cycleForDate, nextCycle, previousCycle } from '../domain/cycle';
 import { fixedTemplatesForMonth } from '../domain/fixedTemplates';
@@ -327,14 +331,23 @@ export class DashboardView extends ItemView {
 	): void {
 		const content = container.createDiv({ cls: 'finance-vault-donut-layout' });
 		const visual = content.createDiv({ cls: 'finance-vault-donut', attr: { 'aria-hidden': 'true' } });
-		let accumulatedCents = 0;
-		const stops = segments.map((segment, index) => {
-			const start = accumulatedCents / totalCents * 100;
-			accumulatedCents += segment.amountCents;
-			const end = index === segments.length - 1 ? 100 : accumulatedCents / totalCents * 100;
-			return `var(--finance-vault-chart-color-${index}) ${start.toFixed(3)}% ${end.toFixed(3)}%`;
-		});
-		visual.style.backgroundImage = `conic-gradient(${stops.join(', ')})`;
+		const svgNamespace = 'http://www.w3.org/2000/svg';
+		const svg = document.createElementNS(svgNamespace, 'svg');
+		svg.setAttribute('class', 'finance-vault-donut-svg');
+		svg.setAttribute('viewBox', '0 0 42 42');
+		visual.appendChild(svg);
+		for (const [index, slice] of calculateDonutSlices(segments, totalCents).entries()) {
+			const circle = document.createElementNS(svgNamespace, 'circle');
+			circle.setAttribute('class', `finance-vault-donut-segment finance-vault-donut-segment-${index}`);
+			circle.setAttribute('cx', '21');
+			circle.setAttribute('cy', '21');
+			circle.setAttribute('r', '15.9155');
+			circle.setAttribute('pathLength', '100');
+			circle.setAttribute('stroke-dasharray', `${slice.percentage} ${100 - slice.percentage}`);
+			circle.setAttribute('stroke-dashoffset', String(-slice.offsetPercentage));
+			circle.setAttribute('transform', 'rotate(-90 21 21)');
+			svg.appendChild(circle);
+		}
 		const center = visual.createDiv({ cls: 'finance-vault-donut-center' });
 		center.createSpan({ text: totalLabel });
 		center.createEl('strong', { text: formatBrl(totalCents) });
