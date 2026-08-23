@@ -15,6 +15,7 @@ import type {
 	FinancePluginData,
 	FinanceSettings,
 	PendingMove,
+	Transaction,
 } from './types';
 import { DashboardView, FINANCE_VAULT_VIEW } from './views/DashboardView';
 
@@ -61,8 +62,11 @@ export default class FinanceVaultPlugin extends Plugin {
 			id: 'add-transaction',
 			name: 'Adicionar transação',
 			callback: () => {
-				new TransactionModal(this.app, this.settings, undefined, async (transaction) => {
+				new TransactionModal(this.app, this.settings, undefined, async ({ transaction, updateFixedTemplate }) => {
 					await this.transactions.create(transaction);
+					if (updateFixedTemplate) {
+						await this.updateFixedTemplateFromTransaction(transaction);
+					}
 					await this.refreshViews();
 				}).open();
 			},
@@ -111,6 +115,18 @@ export default class FinanceVaultPlugin extends Plugin {
 		this.data.settings = this.settings;
 		await this.savePluginData();
 		await this.refreshViews();
+	}
+
+	async updateFixedTemplateFromTransaction(transaction: Transaction): Promise<void> {
+		const template = this.settings.fixedTemplates.find((candidate) => candidate.id === transaction.fixedTemplateId);
+		if (!template) {
+			return;
+		}
+		template.type = transaction.type;
+		template.accountId = transaction.accountId ?? template.accountId;
+		template.categoryId = transaction.categoryId;
+		template.amountCents = transaction.amountCents;
+		await this.saveSettings();
 	}
 
 	async changeDataRoot(rawPath: string): Promise<void> {

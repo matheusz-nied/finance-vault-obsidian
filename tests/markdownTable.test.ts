@@ -58,6 +58,22 @@ describe('codec de tabelas Markdown', () => {
 		expect(parseMarkdownTable(content, TRANSACTION_SCHEMA).rows).toHaveLength(1);
 	});
 
+	it('adiciona novas colunas opcionais a uma tabela antiga sem perder dados', () => {
+		const oldSchema = {
+			...TRANSACTION_SCHEMA,
+			columns: TRANSACTION_SCHEMA.columns.filter((column) => column !== 'fixedTemplateId'),
+		};
+		let content = createMarkdownDocument(oldSchema);
+		content = insertMarkdownRow(content, oldSchema, first);
+		content = updateMarkdownRow(content, TRANSACTION_SCHEMA, 'tx-1', {
+			...first,
+			fixedTemplateId: 'fixed-chatgpt',
+		});
+		const table = parseMarkdownTable(content, TRANSACTION_SCHEMA);
+		expect(table.columns).toContain('fixedTemplateId');
+		expect(table.rows[0]?.cells.fixedTemplateId).toBe('fixed-chatgpt');
+	});
+
 	it('bloqueia mutação quando há ID duplicado', () => {
 		let content = createMarkdownDocument(TRANSACTION_SCHEMA);
 		content = insertMarkdownRow(content, TRANSACTION_SCHEMA, first);

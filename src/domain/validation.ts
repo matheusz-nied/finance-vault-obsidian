@@ -1,5 +1,6 @@
 import type {
 	FinanceSettings,
+	FixedTemplate,
 	InvestmentContribution,
 	InvestmentCategory,
 	Transaction,
@@ -54,7 +55,33 @@ export function validateTransaction(transaction: Transaction, settings: FinanceS
 			throw new Error('A categoria não corresponde ao tipo da transação.');
 		}
 	}
+	if (transaction.fixedTemplateId !== undefined && !transaction.fixedTemplateId.trim()) {
+		throw new Error('O identificador do modelo fixo é inválido.');
+	}
 	return transaction;
+}
+
+export function validateFixedTemplate(template: FixedTemplate, settings: FinanceSettings): FixedTemplate {
+	if (!template.id.trim()) {
+		throw new Error('O modelo fixo precisa de um ID.');
+	}
+	if (!template.name.trim()) {
+		throw new Error('Informe um nome para o modelo fixo.');
+	}
+	assertMoneyCents(template.amountCents);
+	if (!settings.accounts.some((account) => account.id === template.accountId)) {
+		throw new Error('Selecione uma conta válida para o modelo fixo.');
+	}
+	const category = template.categoryId
+		? settings.categories.find((candidate) => candidate.id === template.categoryId)
+		: undefined;
+	if (template.type === 'expense' && (!category || category.kind !== 'expense')) {
+		throw new Error('Selecione uma categoria de despesa válida para o modelo fixo.');
+	}
+	if (category && category.kind !== template.type) {
+		throw new Error('A categoria do modelo não corresponde ao tipo do lançamento.');
+	}
+	return template;
 }
 
 export function validateInvestment(contribution: InvestmentContribution): InvestmentContribution {

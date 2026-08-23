@@ -22,6 +22,7 @@ export function calculateReport(
 	);
 	const contributedCents = safeSum(relevantContributions.map((item) => item.amountCents));
 	const spentByCategory: Record<string, number> = {};
+	const spentByAccount: Record<string, number> = {};
 	for (const transaction of relevantTransactions) {
 		if (transaction.type !== 'expense') {
 			continue;
@@ -29,6 +30,11 @@ export function calculateReport(
 		const categoryId = transaction.categoryId ?? 'uncategorized';
 		spentByCategory[categoryId] = safeSum([
 			spentByCategory[categoryId] ?? 0,
+			transaction.amountCents,
+		]);
+		const accountId = transaction.accountId ?? 'unassigned';
+		spentByAccount[accountId] = safeSum([
+			spentByAccount[accountId] ?? 0,
 			transaction.amountCents,
 		]);
 	}
@@ -39,6 +45,7 @@ export function calculateReport(
 		contributedCents,
 		balanceCents: receivedCents - spentCents - contributedCents,
 		spentByCategory,
+		spentByAccount,
 	};
 }
 

@@ -94,6 +94,16 @@
 	border-radius: var(--radius-s);
 }
 
+.finance-vault-fixed-indicator {
+	display: inline-flex;
+	color: var(--text-muted);
+}
+
+.finance-vault-fixed-indicator svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
 .finance-vault-record-body {
 	display: flex;
 	flex: 1;

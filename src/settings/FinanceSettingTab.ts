@@ -6,6 +6,9 @@ import {
 } from 'obsidian';
 import { addDays, compareDates, isLocalDate, todayLocal } from '../domain/date';
 import { createId } from '../domain/id';
+import { formatBrl } from '../domain/money';
+import { FixedTemplateModal } from '../modals/FixedTemplateModal';
+import type { FixedTemplate } from '../types';
 import type { AccountKind, CategoryKind } from '../types';
 import type FinanceVaultPlugin from '../main';
 
@@ -155,6 +158,35 @@ export class FinanceSettingTab extends PluginSettingTab {
 				})),
 			},
 			{
+				type: 'list',
+				heading: 'Modelos fixos',
+				emptyState: 'Nenhum modelo fixo cadastrado.',
+				addItem: {
+					name: 'Adicionar modelo fixo',
+					action: () => {
+						this.openFixedTemplate();
+					},
+				},
+				items: this.financePlugin.settings.fixedTemplates.map((template) => ({
+					name: template.name,
+					desc: this.fixedTemplateDescription(template),
+					aliases: ['fixo', 'recorrente', 'modelo', 'assinatura'],
+					render: (setting) => {
+						setting
+							.addButton((button) => button
+								.setButtonText('Editar')
+								.onClick(() => this.openFixedTemplate(template)))
+							.addButton((button) => button
+								.setButtonText(template.archived ? 'Restaurar' : 'Arquivar')
+								.onClick(async () => {
+									template.archived = !template.archived;
+									await this.financePlugin.saveSettings();
+									this.update();
+								}));
+					},
+				})),
+			},
+			{
 				type: 'group',
 				heading: 'Ciclo financeiro',
 				items: [
@@ -211,6 +243,26 @@ export class FinanceSettingTab extends PluginSettingTab {
 		});
 		await this.financePlugin.saveSettings();
 		this.update();
+	}
+
+	private openFixedTemplate(initial?: FixedTemplate): void {
+		new FixedTemplateModal(this.app, this.financePlugin.settings, initial, async (template) => {
+			const index = this.financePlugin.settings.fixedTemplates.findIndex((candidate) => candidate.id === template.id);
+			if (index >= 0) {
+				this.financePlugin.settings.fixedTemplates[index] = template;
+			} else {
+				this.financePlugin.settings.fixedTemplates.push(template);
+			}
+			await this.financePlugin.saveSettings();
+			this.update();
+		}).open();
+	}
+
+	private fixedTemplateDescription(template: FixedTemplate): string {
+		const account = this.financePlugin.settings.accounts.find((candidate) => candidate.id === template.accountId);
+		const kind = template.type === 'income' ? 'Receita' : 'Despesa';
+		const archived = template.archived ? ' · Arquivado' : '';
+		return `${kind} · ${account?.name ?? template.accountId} · ${formatBrl(template.amountCents)}${archived}`;
 	}
 
 	private async addCycleRule(effectiveFrom: string, startDay: string): Promise<void> {

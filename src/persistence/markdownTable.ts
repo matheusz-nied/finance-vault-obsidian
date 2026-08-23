@@ -16,6 +16,7 @@ export interface ParsedMarkdownTable {
 	newline: '\n' | '\r\n';
 	columns: string[];
 	rows: ParsedTableRow[];
+	headerLineIndex: number;
 	insertLineIndex: number;
 	diagnostics: string[];
 }
@@ -141,6 +142,7 @@ export function parseMarkdownTable(content: string, schema: MarkdownTableSchema)
 			newline,
 			columns: [...schema.columns],
 			rows: [],
+			headerLineIndex: -1,
 			insertLineIndex: lines.length,
 			diagnostics: [...diagnostics, 'Tabela financeira não encontrada.'],
 		};
@@ -179,7 +181,7 @@ export function parseMarkdownTable(content: string, schema: MarkdownTableSchema)
 		seenIds.add(id);
 		rows.push(row);
 	}
-	return { lines, newline, columns, rows, insertLineIndex: rowLimit, diagnostics };
+	return { lines, newline, columns, rows, headerLineIndex: headerIndex, insertLineIndex: rowLimit, diagnostics };
 }
 
 function serializeRow(columns: readonly string[], values: Record<string, string>): string {
@@ -190,6 +192,22 @@ function requireMutableTable(table: ParsedMarkdownTable): void {
 	if (table.diagnostics.length > 0) {
 		throw new Error(`O arquivo possui problemas e não foi alterado: ${table.diagnostics.join(' ')}`);
 	}
+}
+
+function addMissingSchemaColumns(table: ParsedMarkdownTable, schema: MarkdownTableSchema): void {
+	const missing = schema.columns.filter((column) => !table.columns.includes(column));
+	if (missing.length === 0) {
+		return;
+	}
+	const columns = [...table.columns, ...missing];
+	table.lines[table.headerLineIndex] = `| ${columns.join(' | ')} |`;
+	table.lines[table.headerLineIndex + 1] = `| ${columns
+		.map((column) => column === 'amountCents' ? '---:' : '---')
+		.join(' | ')} |`;
+	for (const row of table.rows) {
+		table.lines[row.lineIndex] = serializeRow(columns, row.cells);
+	}
+	table.columns = columns;
 }
 
 export function createMarkdownDocument(schema: MarkdownTableSchema): string {
@@ -206,6 +224,7 @@ export function insertMarkdownRow(
 ): string {
 	const table = parseMarkdownTable(content, schema);
 	requireMutableTable(table);
+	addMissingSchemaColumns(table, schema);
 	if (table.rows.some((row) => row.cells.id === values.id)) {
 		throw new Error(`Já existe um registro com o ID ${values.id}.`);
 	}
@@ -221,6 +240,7 @@ export function updateMarkdownRow(
 ): string {
 	const table = parseMarkdownTable(content, schema);
 	requireMutableTable(table);
+	addMissingSchemaColumns(table, schema);
 	const row = table.rows.find((candidate) => candidate.cells.id === id);
 	if (!row) {
 		throw new Error(`Registro ${id} não encontrado.`);

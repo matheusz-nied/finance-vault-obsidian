@@ -40,5 +40,7 @@ describe('relatórios', () => {
 		expect(report.spentCents).toBe(99345);
 		expect(report.contributedCents).toBe(90000);
 		expect(report.spentByCategory.food).toBe(14845);
+		expect(report.spentByAccount['credit-card']).toBe(12345);
+		expect(report.spentByAccount.bank).toBe(82500);
 	});
 });

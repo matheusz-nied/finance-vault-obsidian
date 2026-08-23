@@ -8,6 +8,9 @@ Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. El
 - Ciclo padrão do dia 10 ao dia 9 seguinte, com regras futuras configuráveis.
 - Compras no cartão contabilizadas como despesa na data real.
 - Compras no cartão contabilizadas uma única vez, na data real da compra.
+- Modelos fixos de receita e despesa com lançamento manual e valor editável.
+- Checklist mensal dos modelos já lançados, sem estados financeiros adicionais.
+- Gastos agrupados por cartão de crédito no dashboard.
 - Aportes separados das despesas de consumo.
 - Valores armazenados em centavos inteiros e exibidos em BRL.
 - Interface em português, responsiva e compatível com temas claros e escuros.
@@ -28,6 +31,8 @@ Financas/
 O arquivo é sempre escolhido pela data real do registro. O ciclo financeiro é apenas uma consulta calculada e nunca move registros entre meses.
 
 As tabelas gerenciadas são delimitadas por comentários `finance-vault:table:v1`. Texto fora desses marcadores e colunas adicionais são preservados. Se uma linha estiver inválida ou duplicada, o dashboard mostra um diagnóstico e impede alterações que possam apagar dados.
+
+Um lançamento criado a partir de um modelo guarda apenas o `fixedTemplateId`. O registro continua sendo uma receita ou despesa normal; editar seu valor ou sua data não cria uma segunda transação. Modelos são configurados em **Configurações → Finance Vault → Modelos fixos**.
 
 Configurações internas ficam no `data.json` do plugin por meio de `Plugin.loadData()` e `Plugin.saveData()`.
 

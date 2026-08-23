@@ -33,6 +33,8 @@ Os totais abaixo estão em centavos.
 - `2026-09-10`: primeiro dia do ciclo seguinte.
 - Uma compra de `12345` no cartão é contabilizada como despesa.
 - A compra no cartão de `12345` entra no gasto uma única vez, na data da compra.
+- Modelos fixos podem preencher receitas e despesas mensais sem criar lançamentos automaticamente.
+- O vínculo opcional `fixedTemplateId` permite identificar se um fixo já foi lançado no mês.
 - Os aportes permanecem separados das despesas de consumo.
 
 ## Carregar o plugin

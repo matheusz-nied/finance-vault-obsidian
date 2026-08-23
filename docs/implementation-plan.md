@@ -4,5 +4,7 @@
 2. Implementar datas civis, dinheiro em centavos, ciclos históricos e relatórios como funções puras.
 3. Persistir transações e aportes em tabelas Markdown mensais, usando `Vault.process()` e preservando conteúdo externo.
 4. Criar dashboard para mês, ciclo e ano, modais de CRUD e configurações de pasta, contas, categorias e ciclos.
-5. Validar o ciclo padrão 10–9, cartão sem despesa duplicada, aportes separados e somas mensais/anuais.
-6. Entregar lint, testes e build aprovados, documentação de instalação e vault local de demonstração.
+5. Validar o ciclo padrão 10–9, gastos por cartão, aportes separados e somas mensais/anuais.
+6. Implementar modelos fixos que preencham receitas e despesas manualmente, com vínculo mensal sem estados persistidos.
+7. Exibir o checklist mensal de fixos e agrupar despesas por cartão no dashboard.
+8. Entregar lint, testes e build aprovados, documentação de instalação e vault local de demonstração.

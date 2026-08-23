@@ -28,6 +28,16 @@ export interface TransactionCategory {
 	archived: boolean;
 }
 
+export interface FixedTemplate {
+	id: string;
+	name: string;
+	type: TransactionType;
+	accountId: string;
+	categoryId?: string;
+	amountCents: MoneyCents;
+	archived: boolean;
+}
+
 export interface CycleRule {
 	id: string;
 	effectiveFrom: LocalDate;
@@ -40,6 +50,7 @@ export interface Transaction {
 	type: TransactionType;
 	accountId?: string;
 	categoryId?: string;
+	fixedTemplateId?: string;
 	description: string;
 	amountCents: MoneyCents;
 	createdAt: string;
@@ -67,6 +78,7 @@ export interface PeriodReport extends DateRange {
 	contributedCents: MoneyCents;
 	balanceCents: MoneyCents;
 	spentByCategory: Record<string, MoneyCents>;
+	spentByAccount: Record<string, MoneyCents>;
 }
 
 export interface StorageDiagnostic {
@@ -93,10 +105,11 @@ export interface PendingMove {
 }
 
 export interface FinanceSettings {
-	schemaVersion: 1;
+	schemaVersion: 2;
 	dataRoot: string;
 	accounts: Account[];
 	categories: TransactionCategory[];
+	fixedTemplates: FixedTemplate[];
 	cycleRules: CycleRule[];
 }
 

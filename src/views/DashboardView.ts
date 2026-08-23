@@ -1,11 +1,12 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
-import { addMonths, formatLocalDate, localDate, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
+import { addMonths, formatLocalDate, localDate, monthKey, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
 import { cycleForDate, nextCycle, previousCycle } from '../domain/cycle';
+import { fixedTemplatesForMonth } from '../domain/fixedTemplates';
 import { formatBrl } from '../domain/money';
 import { calculateReport } from '../domain/reports';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { InvestmentModal } from '../modals/InvestmentModal';
-import { TransactionModal } from '../modals/TransactionModal';
+import { TransactionModal, type TransactionModalOptions } from '../modals/TransactionModal';
 import type {
 	DateRange,
 	InvestmentCategory,
@@ -66,10 +67,16 @@ export class DashboardView extends ItemView {
 		container.empty();
 		container.createDiv({ cls: 'finance-vault-loading', text: 'Carregando dados financeiros…' });
 		const period = this.currentPeriod();
+		const fixedPeriod = monthRange(this.anchor);
 		try {
-			const [transactionQuery, investmentQuery] = await Promise.all([
-				this.financePlugin.transactions.listRange(period),
+			const transactionRequest = this.financePlugin.transactions.listRange(period);
+			const fixedTransactionRequest = period.start === fixedPeriod.start && period.end === fixedPeriod.end
+				? transactionRequest
+				: this.financePlugin.transactions.listRange(fixedPeriod);
+			const [transactionQuery, investmentQuery, fixedTransactionQuery] = await Promise.all([
+				transactionRequest,
 				this.financePlugin.investments.listRange(period),
+				fixedTransactionRequest,
 			]);
 			if (version !== this.renderVersion) {
 				return;
@@ -77,8 +84,14 @@ export class DashboardView extends ItemView {
 			const report = calculateReport(period, transactionQuery.records, investmentQuery.records);
 			container.empty();
 			this.renderHeader(container, period);
-			this.renderDiagnostics(container, [...transactionQuery.diagnostics, ...investmentQuery.diagnostics]);
+			const fixedDiagnostics = fixedTransactionQuery === transactionQuery ? [] : fixedTransactionQuery.diagnostics;
+			this.renderDiagnostics(container, [
+				...transactionQuery.diagnostics,
+				...investmentQuery.diagnostics,
+				...fixedDiagnostics,
+			]);
 			this.renderSummary(container, report);
+			this.renderFixedTemplates(container, fixedTransactionQuery.records);
 			if (this.mode === 'year') {
 				this.renderYearSummary(container, transactionQuery.records, investmentQuery.records);
 			}
@@ -181,6 +194,61 @@ export class DashboardView extends ItemView {
 				const item = list.createDiv({ cls: 'finance-vault-category-item' });
 				item.createSpan({ text: this.categoryName(categoryId) });
 				item.createEl('strong', { text: formatBrl(amount) });
+			}
+		}
+
+		const creditCards = this.financePlugin.settings.accounts.filter((account) => account.kind === 'credit-card'
+			&& (!account.archived || Boolean(report.spentByAccount[account.id])));
+		if (creditCards.length > 0) {
+			const section = container.createEl('section', { cls: 'finance-vault-section' });
+			section.createEl('h3', { text: 'Gastos por cartão' });
+			const list = section.createDiv({ cls: 'finance-vault-category-list' });
+			for (const account of creditCards) {
+				const item = list.createDiv({ cls: 'finance-vault-category-item' });
+				item.createSpan({ text: account.name });
+				item.createEl('strong', { text: formatBrl(report.spentByAccount[account.id] ?? 0) });
+			}
+		}
+	}
+
+	private renderFixedTemplates(container: HTMLElement, transactions: readonly Transaction[]): void {
+		const items = fixedTemplatesForMonth(this.financePlugin.settings.fixedTemplates, transactions, this.anchor);
+		if (items.length === 0) {
+			return;
+		}
+		const { year, month } = parseLocalDate(this.anchor);
+		const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
+			.format(new Date(year, month - 1, 1));
+		const section = container.createEl('section', { cls: 'finance-vault-section' });
+		section.createEl('h3', { text: `Fixos de ${monthLabel}` });
+		const launched = items.filter((item) => item.transactions.length > 0).length;
+		section.createEl('p', {
+			cls: 'finance-vault-period',
+			text: `${launched} de ${items.length} modelo(s) lançado(s) neste mês.`,
+		});
+		const list = section.createDiv({ cls: 'finance-vault-record-list' });
+		for (const item of items) {
+			const row = list.createDiv({ cls: 'finance-vault-record' });
+			const indicator = row.createSpan({ cls: 'finance-vault-fixed-indicator' });
+			setIcon(indicator, item.transactions.length > 0 ? 'circle-check' : 'circle');
+			const body = row.createDiv({ cls: 'finance-vault-record-body' });
+			body.createEl('strong', { text: item.template.name });
+			const amount = item.transactions.length > 0 ? item.launchedCents : item.template.amountCents;
+			const account = this.accountName(item.template.accountId);
+			body.createSpan({
+				text: `${item.transactions.length > 0 ? 'Lançado' : 'Não lançado'} · ${account} · ${formatBrl(amount)}`,
+			});
+			if (item.transactions.length > 0) {
+				this.createIconButton(row, 'pencil', `Editar ${item.template.name}`, () => {
+					this.openTransaction(item.transactions[0]);
+				});
+			} else {
+				this.createActionButton(row, 'plus-circle', 'Lançar', () => {
+					this.openTransaction(undefined, {
+						fixedTemplateId: item.template.id,
+						date: `${monthKey(this.anchor)}-01`,
+					});
+				});
 			}
 		}
 	}
@@ -299,15 +367,18 @@ export class DashboardView extends ItemView {
 		}
 	}
 
-	private openTransaction(initial?: Transaction): void {
-		new TransactionModal(this.app, this.financePlugin.settings, initial, async (transaction) => {
+	private openTransaction(initial?: Transaction, options: TransactionModalOptions = {}): void {
+		new TransactionModal(this.app, this.financePlugin.settings, initial, async ({ transaction, updateFixedTemplate }) => {
 			if (initial) {
 				await this.financePlugin.transactions.update(initial.id, initial.date, transaction);
 			} else {
 				await this.financePlugin.transactions.create(transaction);
 			}
+			if (updateFixedTemplate) {
+				await this.financePlugin.updateFixedTemplateFromTransaction(transaction);
+			}
 			await this.refresh();
-		}).open();
+		}, options).open();
 	}
 
 	private openInvestment(initial?: InvestmentContribution): void {

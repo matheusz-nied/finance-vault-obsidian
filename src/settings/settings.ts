@@ -3,6 +3,7 @@ import type {
 	CycleRule,
 	FinancePluginData,
 	FinanceSettings,
+	FixedTemplate,
 	PendingMove,
 	TransactionCategory,
 } from '../types';
@@ -27,10 +28,11 @@ const DEFAULT_CATEGORIES: TransactionCategory[] = [
 ];
 
 export const DEFAULT_SETTINGS: FinanceSettings = {
-	schemaVersion: 1,
+	schemaVersion: 2,
 	dataRoot: 'Financas',
 	accounts: DEFAULT_ACCOUNTS,
 	categories: DEFAULT_CATEGORIES,
+	fixedTemplates: [],
 	cycleRules: [DEFAULT_CYCLE_RULE],
 };
 
@@ -94,6 +96,38 @@ function normalizeCategories(value: unknown): TransactionCategory[] {
 	return result.length > 0 ? result : DEFAULT_CATEGORIES.map((category) => ({ ...category }));
 }
 
+function normalizeFixedTemplates(value: unknown): FixedTemplate[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	const ids = new Set<string>();
+	return value.filter((item): item is FixedTemplate => {
+		if (!item || typeof item !== 'object') {
+			return false;
+		}
+		const template = item as Partial<FixedTemplate>;
+		if (typeof template.id !== 'string'
+			|| !template.id.trim()
+			|| ids.has(template.id)
+			|| typeof template.name !== 'string'
+			|| !template.name.trim()
+			|| (template.type !== 'income' && template.type !== 'expense')
+			|| typeof template.accountId !== 'string'
+			|| !template.accountId
+			|| !Number.isSafeInteger(template.amountCents)
+			|| (template.amountCents ?? 0) <= 0) {
+			return false;
+		}
+		ids.add(template.id);
+		return true;
+	}).map((template) => ({
+		...template,
+		name: template.name.trim(),
+		categoryId: template.categoryId?.trim() || undefined,
+		archived: Boolean(template.archived),
+	}));
+}
+
 function normalizeCycleRules(value: unknown): CycleRule[] {
 	if (!Array.isArray(value)) {
 		return [{ ...DEFAULT_CYCLE_RULE }];
@@ -124,12 +158,13 @@ export function normalizePluginData(value: unknown): FinancePluginData {
 		: {};
 	return {
 		settings: {
-			schemaVersion: 1,
+			schemaVersion: 2,
 			dataRoot: typeof rawSettings.dataRoot === 'string' && rawSettings.dataRoot.trim()
 				? rawSettings.dataRoot.trim()
 				: DEFAULT_SETTINGS.dataRoot,
 			accounts: normalizeAccounts(rawSettings.accounts),
 			categories: normalizeCategories(rawSettings.categories),
+			fixedTemplates: normalizeFixedTemplates(rawSettings.fixedTemplates),
 			cycleRules: normalizeCycleRules(rawSettings.cycleRules),
 		},
 		pendingMove: normalizePendingMove(data.pendingMove),
