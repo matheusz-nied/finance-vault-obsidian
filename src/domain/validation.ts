@@ -6,6 +6,7 @@ import type {
 	Transaction,
 } from '../types';
 import { isLocalDate } from './date';
+import { MAX_INSTALLMENT_COUNT } from './installments';
 import { assertMoneyCents } from './money';
 
 const INVESTMENT_CATEGORIES = new Set<InvestmentCategory>([
@@ -57,6 +58,35 @@ export function validateTransaction(transaction: Transaction, settings: FinanceS
 	}
 	if (transaction.fixedTemplateId !== undefined && !transaction.fixedTemplateId.trim()) {
 		throw new Error('O identificador do modelo fixo é inválido.');
+	}
+	const installmentFields = [
+		transaction.installmentPlanId,
+		transaction.installmentNumber,
+		transaction.installmentCount,
+		transaction.installmentTotalCents,
+		transaction.installmentPurchaseDate,
+	];
+	const hasInstallment = installmentFields.some((value) => value !== undefined);
+	if (hasInstallment) {
+		if (installmentFields.some((value) => value === undefined)
+			|| !transaction.installmentPlanId?.trim()
+			|| !Number.isInteger(transaction.installmentNumber)
+			|| !Number.isInteger(transaction.installmentCount)
+			|| (transaction.installmentCount ?? 0) < 2
+			|| (transaction.installmentCount ?? 0) > MAX_INSTALLMENT_COUNT
+			|| (transaction.installmentNumber ?? 0) < 1
+			|| (transaction.installmentNumber ?? 0) > (transaction.installmentCount ?? 0)
+			|| !isLocalDate(transaction.installmentPurchaseDate ?? '')) {
+			throw new Error('Os dados do parcelamento são inválidos ou estão incompletos.');
+		}
+		assertMoneyCents(transaction.installmentTotalCents ?? 0);
+		const account = settings.accounts.find((candidate) => candidate.id === transaction.accountId);
+		if (transaction.type !== 'expense' || account?.kind !== 'credit-card') {
+			throw new Error('Parcelamentos precisam ser despesas em um cartão de crédito.');
+		}
+		if (transaction.fixedTemplateId) {
+			throw new Error('Um lançamento não pode ser fixo e parcelado ao mesmo tempo.');
+		}
 	}
 	return transaction;
 }

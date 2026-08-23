@@ -13,6 +13,11 @@ export const TRANSACTION_SCHEMA: MarkdownTableSchema = {
 		'accountId',
 		'categoryId',
 		'fixedTemplateId',
+		'installmentPlanId',
+		'installmentNumber',
+		'installmentCount',
+		'installmentTotalCents',
+		'installmentPurchaseDate',
 		'description',
 		'amountCents',
 		'createdAt',
@@ -47,6 +52,11 @@ export function transactionToCells(transaction: Transaction): Record<string, str
 		accountId: transaction.accountId ?? '',
 		categoryId: transaction.categoryId ?? '',
 		fixedTemplateId: transaction.fixedTemplateId ?? '',
+		installmentPlanId: transaction.installmentPlanId ?? '',
+		installmentNumber: transaction.installmentNumber ? String(transaction.installmentNumber) : '',
+		installmentCount: transaction.installmentCount ? String(transaction.installmentCount) : '',
+		installmentTotalCents: transaction.installmentTotalCents ? String(transaction.installmentTotalCents) : '',
+		installmentPurchaseDate: transaction.installmentPurchaseDate ?? '',
 		description: transaction.description,
 		amountCents: String(transaction.amountCents),
 		createdAt: transaction.createdAt,
@@ -71,11 +81,31 @@ export function transactionFromCells(cells: Record<string, string>): Transaction
 		accountId: optional(cells.accountId),
 		categoryId: optional(cells.categoryId),
 		fixedTemplateId: optional(cells.fixedTemplateId),
+		installmentPlanId: optional(cells.installmentPlanId),
+		installmentNumber: optionalPositiveInteger(cells.installmentNumber, 'installmentNumber'),
+		installmentCount: optionalPositiveInteger(cells.installmentCount, 'installmentCount'),
+		installmentTotalCents: optionalPositiveInteger(cells.installmentTotalCents, 'installmentTotalCents'),
+		installmentPurchaseDate: optional(cells.installmentPurchaseDate),
 		description: cells.description,
 		amountCents: parseCents(cells.amountCents ?? ''),
 		createdAt: cells.createdAt,
 		updatedAt: optional(cells.updatedAt),
 	};
+}
+
+function optionalPositiveInteger(value: string | undefined, field: string): number | undefined {
+	const normalized = optional(value);
+	if (normalized === undefined) {
+		return undefined;
+	}
+	if (!/^\d+$/.test(normalized)) {
+		throw new Error(`${field} precisa ser um inteiro positivo.`);
+	}
+	const parsed = Number(normalized);
+	if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+		throw new Error(`${field} precisa ser um inteiro positivo.`);
+	}
+	return parsed;
 }
 
 export function investmentToCells(contribution: InvestmentContribution): Record<string, string> {

@@ -105,4 +105,22 @@ describe('repositório Markdown mensal', () => {
 		expect(pendingMove).toBeUndefined();
 		expect((await repository.listRange({ start: '2026-08-01', end: '2026-09-30' })).records).toEqual([moved]);
 	});
+
+	it('cria um parcelamento em vários arquivos mensais', async () => {
+		const vault = new FakeVault();
+		const repository = new TransactionRepository(
+			vault as unknown as Vault,
+			() => 'Financas',
+			() => DEFAULT_SETTINGS,
+			{ setPendingMove: async () => undefined },
+		);
+		const records = [
+			transaction('tx-aug', '2026-08-31'),
+			transaction('tx-sep', '2026-09-30'),
+			transaction('tx-oct', '2026-10-31'),
+		];
+		await repository.createMany(records);
+		const result = await repository.listRange({ start: '2026-08-01', end: '2026-10-31' });
+		expect(result.records.map((record) => record.id)).toEqual(['tx-aug', 'tx-sep', 'tx-oct']);
+	});
 });

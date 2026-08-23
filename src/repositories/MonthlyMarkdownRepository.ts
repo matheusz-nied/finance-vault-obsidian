@@ -167,6 +167,42 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 		await this.serialized(() => this.createUnsafe(record));
 	}
 
+	async createMany(records: readonly T[]): Promise<void> {
+		await this.serialized(async () => {
+			const ids = new Set<string>();
+			for (const record of records) {
+				this.codec.validate(record);
+				if (ids.has(record.id)) {
+					throw new Error(`O lote contém o ID duplicado ${record.id}.`);
+				}
+				ids.add(record.id);
+				if (await this.contains(record.date, record.id)) {
+					throw new Error(`Já existe um registro com o ID ${record.id}.`);
+				}
+			}
+			const created: T[] = [];
+			try {
+				for (const record of records) {
+					await this.createUnsafe(record);
+					created.push(record);
+				}
+			} catch (error) {
+				let rollbackFailed = false;
+				for (const record of created.reverse()) {
+					try {
+						await this.deleteUnsafe(record.id, record.date);
+					} catch {
+						rollbackFailed = true;
+					}
+				}
+				if (rollbackFailed) {
+					throw new Error('O parcelamento falhou e alguns lançamentos podem precisar de revisão manual.');
+				}
+				throw error;
+			}
+		});
+	}
+
 	async update(id: string, originalDate: LocalDate, next: T): Promise<void> {
 		await this.serialized(async () => {
 			this.codec.validate(next);

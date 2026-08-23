@@ -51,6 +51,11 @@ export interface Transaction {
 	accountId?: string;
 	categoryId?: string;
 	fixedTemplateId?: string;
+	installmentPlanId?: string;
+	installmentNumber?: number;
+	installmentCount?: number;
+	installmentTotalCents?: MoneyCents;
+	installmentPurchaseDate?: LocalDate;
 	description: string;
 	amountCents: MoneyCents;
 	createdAt: string;

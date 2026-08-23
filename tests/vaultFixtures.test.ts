@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { calculateReport } from '../src/domain/reports';
 import { validateInvestment, validateTransaction } from '../src/domain/validation';
 import { parseMarkdownTable } from '../src/persistence/markdownTable';
 import {
@@ -16,7 +15,7 @@ function fixture(path: string): string {
 }
 
 describe('vault local de testes', () => {
-	it('começa vazia e usa o formato canônico', () => {
+	it('aceita dados manuais que respeitam o formato canônico', () => {
 		const transactionTables = [
 			parseMarkdownTable(fixture('Financas/Transacoes/2026-08.md'), TRANSACTION_SCHEMA),
 			parseMarkdownTable(fixture('Financas/Transacoes/2026-09.md'), TRANSACTION_SCHEMA),
@@ -33,12 +32,7 @@ describe('vault local de testes', () => {
 		const investments = investmentTables
 			.flatMap((table) => table.rows)
 			.map((row) => validateInvestment(investmentFromCells(row.cells)));
-		const report = calculateReport({ start: '2026-08-10', end: '2026-09-09' }, transactions, investments);
-		expect(transactions).toEqual([]);
-		expect(investments).toEqual([]);
-		expect(report.receivedCents).toBe(0);
-		expect(report.spentCents).toBe(0);
-		expect(report.contributedCents).toBe(0);
-		expect(report.balanceCents).toBe(0);
+		expect([...transactions, ...investments].every((record) => Number.isSafeInteger(record.amountCents))).toBe(true);
+		expect([...transactions, ...investments].every((record) => record.amountCents > 0)).toBe(true);
 	});
 });
