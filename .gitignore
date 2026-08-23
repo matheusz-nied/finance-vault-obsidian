@@ -1,0 +1,22 @@
+# Editors
+.vscode/
+.idea/
+*.iml
+
+# npm and generated artifacts
+node_modules/
+main.js
+*.map
+coverage/
+dist/
+
+# Per-vault plugin state
+data.json
+
+# Local Obsidian workspace state
+test-vault/.obsidian/appearance.json
+test-vault/.obsidian/core-plugins.json
+test-vault/.obsidian/workspace*.json
+
+# macOS
+.DS_Store

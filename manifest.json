@@ -1,0 +1,9 @@
+{
+	"id": "finance-vault",
+	"name": "Finance Vault",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.7",
+	"description": "Registra transações, aportes e relatórios por mês, ciclo financeiro e ano em arquivos Markdown locais.",
+	"author": "Matheus",
+	"isDesktopOnly": false
+}

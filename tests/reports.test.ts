@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { calculateReport } from '../src/domain/reports';
+import type { InvestmentContribution, Transaction } from '../src/types';
+
+const transactions: Transaction[] = [
+	{ id: 'before', date: '2026-08-09', type: 'expense', accountId: 'bank', categoryId: 'food', description: 'Antes', amountCents: 2500, createdAt: '2026-08-09T10:00:00Z' },
+	{ id: 'salary', date: '2026-08-10', type: 'income', accountId: 'bank', categoryId: 'salary', description: 'Salário', amountCents: 500000, createdAt: '2026-08-10T10:00:00Z' },
+	{ id: 'card-purchase', date: '2026-08-15', type: 'expense', accountId: 'credit-card', categoryId: 'food', description: 'Cartão', amountCents: 12345, createdAt: '2026-08-15T10:00:00Z' },
+	{ id: 'card-payment', date: '2026-08-20', type: 'transfer', fromAccountId: 'bank', toAccountId: 'credit-card', description: 'Pagamento', amountCents: 12345, createdAt: '2026-08-20T10:00:00Z' },
+	{ id: 'transport', date: '2026-08-31', type: 'expense', accountId: 'cash', categoryId: 'transport', description: 'Transporte', amountCents: 4500, createdAt: '2026-08-31T10:00:00Z' },
+	{ id: 'housing', date: '2026-09-09', type: 'expense', accountId: 'bank', categoryId: 'housing', description: 'Moradia', amountCents: 80000, createdAt: '2026-09-09T10:00:00Z' },
+	{ id: 'next', date: '2026-09-10', type: 'income', accountId: 'bank', categoryId: 'extra-income', description: 'Próximo', amountCents: 120000, createdAt: '2026-09-10T10:00:00Z' },
+];
+
+const contributions: InvestmentContribution[] = [
+	{ id: 'inv-aug', date: '2026-08-25', asset: 'Tesouro', category: 'fixed-income', amountCents: 50000, createdAt: '2026-08-25T10:00:00Z' },
+	{ id: 'inv-sep', date: '2026-09-09', asset: 'IVVB11', category: 'etf', amountCents: 30000, createdAt: '2026-09-09T10:00:00Z' },
+	{ id: 'inv-next', date: '2026-09-10', asset: 'Bitcoin', category: 'crypto', amountCents: 10000, createdAt: '2026-09-10T10:00:00Z' },
+];
+
+describe('relatórios', () => {
+	it('calcula mês de calendário', () => {
+		const report = calculateReport({ start: '2026-08-01', end: '2026-08-31' }, transactions, contributions);
+		expect(report.receivedCents).toBe(500000);
+		expect(report.spentCents).toBe(19345);
+		expect(report.contributedCents).toBe(50000);
+		expect(report.balanceCents).toBe(430655);
+	});
+
+	it('calcula ciclo que atravessa dois arquivos mensais', () => {
+		const report = calculateReport({ start: '2026-08-10', end: '2026-09-09' }, transactions, contributions);
+		expect(report.receivedCents).toBe(500000);
+		expect(report.spentCents).toBe(96845);
+		expect(report.contributedCents).toBe(80000);
+		expect(report.balanceCents).toBe(323155);
+	});
+
+	it('não duplica a despesa ao pagar o cartão e separa aportes', () => {
+		const report = calculateReport({ start: '2026-01-01', end: '2026-12-31' }, transactions, contributions);
+		expect(report.receivedCents).toBe(620000);
+		expect(report.spentCents).toBe(99345);
+		expect(report.contributedCents).toBe(90000);
+		expect(report.spentByCategory.food).toBe(14845);
+	});
+});
