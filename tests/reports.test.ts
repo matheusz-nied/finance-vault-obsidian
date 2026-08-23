@@ -42,5 +42,30 @@ describe('relatórios', () => {
 		expect(report.spentByCategory.food).toBe(14845);
 		expect(report.spentByAccount['credit-card']).toBe(12345);
 		expect(report.spentByAccount.bank).toBe(82500);
+		expect(report.contributedByCategory['fixed-income']).toBe(50000);
+		expect(report.contributedByCategory.etf).toBe(30000);
+		expect(report.contributedByCategory.crypto).toBe(10000);
+		expect(report.contributedByAsset.Tesouro).toBe(50000);
+		expect(report.contributedByAsset.IVVB11).toBe(30000);
+		expect(report.contributedByAsset.Bitcoin).toBe(10000);
+	});
+
+	it('soma múltiplos aportes do mesmo tipo e ativo', () => {
+		const repeatedContribution: InvestmentContribution = {
+			id: 'inv-aug-extra',
+			date: '2026-08-26',
+			asset: 'Tesouro',
+			category: 'fixed-income',
+			amountCents: 25000,
+			createdAt: '2026-08-26T10:00:00Z',
+		};
+		const report = calculateReport(
+			{ start: '2026-08-01', end: '2026-08-31' },
+			transactions,
+			[...contributions, repeatedContribution],
+		);
+
+		expect(report.contributedByCategory['fixed-income']).toBe(75000);
+		expect(report.contributedByAsset.Tesouro).toBe(75000);
 	});
 });
