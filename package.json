@@ -1,7 +1,7 @@
 {
 	"name": "finance-vault",
 	"version": "0.1.0",
-	"description": "Local-first personal finance plugin for Obsidian.",
+	"description": "Local-first personal finance plugin for Obsidian with Markdown storage.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
