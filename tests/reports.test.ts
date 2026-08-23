@@ -52,12 +52,9 @@ describe('relatórios', () => {
 
 	it('soma múltiplos aportes do mesmo tipo e ativo', () => {
 		const repeatedContribution: InvestmentContribution = {
+			...contributions[0],
 			id: 'inv-aug-extra',
-			date: '2026-08-26',
-			asset: 'Tesouro',
-			category: 'fixed-income',
 			amountCents: 25000,
-			createdAt: '2026-08-26T10:00:00Z',
 		};
 		const report = calculateReport(
 			{ start: '2026-08-01', end: '2026-08-31' },

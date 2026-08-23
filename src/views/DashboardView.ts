@@ -24,14 +24,6 @@ import type FinanceVaultPlugin from '../main';
 
 export const FINANCE_VAULT_VIEW = 'finance-vault-dashboard';
 
-type InvestmentChartGroup = 'category' | 'asset';
-type BarChartTone = 'expense' | 'investment';
-
-interface BarChartItem {
-	label: string;
-	amountCents: number;
-}
-
 const INVESTMENT_LABELS: Record<InvestmentCategory, string> = {
 	'fixed-income': 'Renda fixa',
 	stock: 'Ação',
@@ -45,7 +37,6 @@ export class DashboardView extends ItemView {
 	private mode: ReportMode = 'cycle';
 	private anchor = todayLocal();
 	private transactionTypeFilter = 'all';
-	private investmentChartGroup: InvestmentChartGroup = 'category';
 	private search = '';
 	private renderVersion = 0;
 
@@ -257,18 +248,13 @@ export class DashboardView extends ItemView {
 		if (categories.length > 0) {
 			const section = container.createEl('section', { cls: 'finance-vault-section' });
 			section.createEl('h3', { text: 'Gastos por categoria' });
-			this.renderBarChart(
-				section,
-				categories.map(([categoryId, amountCents]) => ({
-					label: this.categoryName(categoryId),
-					amountCents,
-				})),
-				'expense',
-				'Gastos por categoria',
-			);
+			const list = section.createDiv({ cls: 'finance-vault-category-list' });
+			for (const [categoryId, amount] of categories) {
+				const item = list.createDiv({ cls: 'finance-vault-category-item' });
+				item.createSpan({ text: this.categoryName(categoryId) });
+				item.createEl('strong', { text: formatBrl(amount) });
+			}
 		}
-
-		this.renderInvestmentChart(container, report);
 
 		const creditCards = this.financePlugin.settings.accounts.filter((account) => account.kind === 'credit-card'
 			&& (!account.archived || Boolean(report.spentByAccount[account.id])));
@@ -281,76 +267,6 @@ export class DashboardView extends ItemView {
 				item.createSpan({ text: account.name });
 				item.createEl('strong', { text: formatBrl(report.spentByAccount[account.id] ?? 0) });
 			}
-		}
-	}
-
-	private renderInvestmentChart(container: HTMLElement, report: PeriodReport): void {
-		if (report.contributedCents === 0) {
-			return;
-		}
-		const section = container.createEl('section', { cls: 'finance-vault-section' });
-		const header = section.createDiv({ cls: 'finance-vault-section-header' });
-		header.createEl('h3', { text: 'Investimentos aportados' });
-		const toggle = header.createDiv({ cls: 'finance-vault-chart-toggle' });
-		for (const [group, label] of [['category', 'Por tipo'], ['asset', 'Por ativo']] as const) {
-			const button = toggle.createEl('button', { text: label });
-			button.toggleClass('is-active', this.investmentChartGroup === group);
-			button.setAttr('aria-pressed', String(this.investmentChartGroup === group));
-			button.addEventListener('click', () => {
-				this.investmentChartGroup = group;
-				void this.refresh();
-			});
-		}
-		section.createEl('p', {
-			cls: 'finance-vault-period',
-			text: 'Valores aportados no período. Não incluem cotação, rendimento ou saldo atual.',
-		});
-		const amounts = this.investmentChartGroup === 'category'
-			? report.contributedByCategory
-			: report.contributedByAsset;
-		const items = Object.entries(amounts)
-			.map(([key, amountCents]) => ({
-				label: this.investmentChartGroup === 'category'
-					? INVESTMENT_LABELS[key as InvestmentCategory] ?? key
-					: key,
-				amountCents,
-			}))
-			.sort((left, right) => right.amountCents - left.amountCents);
-		this.renderBarChart(
-			section,
-			items,
-			'investment',
-			this.investmentChartGroup === 'category'
-				? 'Aportes por tipo de investimento'
-				: 'Aportes por ativo',
-		);
-	}
-
-	private renderBarChart(
-		container: HTMLElement,
-		items: readonly BarChartItem[],
-		tone: BarChartTone,
-		accessibleLabel: string,
-	): void {
-		const maximum = Math.max(...items.map((item) => item.amountCents));
-		const chart = container.createDiv({
-			cls: 'finance-vault-bar-chart',
-			attr: { role: 'list', 'aria-label': accessibleLabel },
-		});
-		for (const item of items) {
-			const row = chart.createDiv({ cls: 'finance-vault-bar-row', attr: { role: 'listitem' } });
-			const details = row.createDiv({ cls: 'finance-vault-bar-details' });
-			details.createSpan({ text: item.label });
-			details.createEl('strong', { text: formatBrl(item.amountCents) });
-			const track = row.createDiv({ cls: 'finance-vault-bar-track' });
-			const bar = track.createDiv({ cls: `finance-vault-bar-fill is-${tone}` });
-			const percentage = maximum > 0 ? item.amountCents / maximum * 100 : 0;
-			bar.style.width = `${percentage}%`;
-			bar.setAttr('role', 'meter');
-			bar.setAttr('aria-label', `${item.label}: ${formatBrl(item.amountCents)}`);
-			bar.setAttr('aria-valuemin', '0');
-			bar.setAttr('aria-valuemax', String(maximum));
-			bar.setAttr('aria-valuenow', String(item.amountCents));
 		}
 	}
 
