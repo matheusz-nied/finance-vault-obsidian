@@ -34,6 +34,8 @@ As tabelas gerenciadas são delimitadas por comentários `finance-vault:table:v1
 
 Um lançamento criado a partir de um modelo guarda apenas o `fixedTemplateId`. O registro continua sendo uma receita ou despesa normal; editar seu valor ou sua data não cria uma segunda transação. Modelos são configurados em **Configurações → Finance Vault → Modelos fixos**.
 
+O botão **Lançar** sugere a data âncora do painel, mantendo o novo registro dentro do período visível. Se a data for alterada para fora de um ciclo exibido, o checklist mensal sinaliza isso e os totais continuam respeitando estritamente o período selecionado.
+
 Configurações internas ficam no `data.json` do plugin por meio de `Plugin.loadData()` e `Plugin.saveData()`.
 
 ## Ciclo financeiro

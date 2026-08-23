@@ -1,5 +1,5 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
-import { addMonths, formatLocalDate, localDate, monthKey, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
+import { addMonths, formatLocalDate, isWithinRange, localDate, monthRange, parseLocalDate, todayLocal, yearRange } from '../domain/date';
 import { cycleForDate, nextCycle, previousCycle } from '../domain/cycle';
 import { fixedTemplatesForMonth } from '../domain/fixedTemplates';
 import { formatBrl } from '../domain/money';
@@ -91,7 +91,7 @@ export class DashboardView extends ItemView {
 				...fixedDiagnostics,
 			]);
 			this.renderSummary(container, report);
-			this.renderFixedTemplates(container, fixedTransactionQuery.records);
+			this.renderFixedTemplates(container, fixedTransactionQuery.records, period);
 			if (this.mode === 'year') {
 				this.renderYearSummary(container, transactionQuery.records, investmentQuery.records);
 			}
@@ -211,7 +211,11 @@ export class DashboardView extends ItemView {
 		}
 	}
 
-	private renderFixedTemplates(container: HTMLElement, transactions: readonly Transaction[]): void {
+	private renderFixedTemplates(
+		container: HTMLElement,
+		transactions: readonly Transaction[],
+		displayedPeriod: DateRange,
+	): void {
 		const items = fixedTemplatesForMonth(this.financePlugin.settings.fixedTemplates, transactions, this.anchor);
 		if (items.length === 0) {
 			return;
@@ -235,8 +239,17 @@ export class DashboardView extends ItemView {
 			body.createEl('strong', { text: item.template.name });
 			const amount = item.transactions.length > 0 ? item.launchedCents : item.template.amountCents;
 			const account = this.accountName(item.template.accountId);
+			const displayedOccurrences = item.transactions
+				.filter((transaction) => isWithinRange(transaction.date, displayedPeriod));
+			const launchLabel = item.transactions.length === 0
+				? 'Não lançado'
+				: displayedOccurrences.length === 0
+					? 'Lançado no mês, fora do período exibido'
+					: displayedOccurrences.length < item.transactions.length
+						? 'Lançado no mês, parcialmente fora do período exibido'
+						: 'Lançado';
 			body.createSpan({
-				text: `${item.transactions.length > 0 ? 'Lançado' : 'Não lançado'} · ${account} · ${formatBrl(amount)}`,
+				text: `${launchLabel} · ${account} · ${formatBrl(amount)}`,
 			});
 			if (item.transactions.length > 0) {
 				this.createIconButton(row, 'pencil', `Editar ${item.template.name}`, () => {
@@ -246,7 +259,7 @@ export class DashboardView extends ItemView {
 				this.createActionButton(row, 'plus-circle', 'Lançar', () => {
 					this.openTransaction(undefined, {
 						fixedTemplateId: item.template.id,
-						date: `${monthKey(this.anchor)}-01`,
+						date: this.anchor,
 					});
 				});
 			}
