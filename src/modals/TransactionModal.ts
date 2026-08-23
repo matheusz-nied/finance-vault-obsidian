@@ -23,10 +23,8 @@ export class TransactionModal extends Modal {
 		let description = this.initial?.description ?? '';
 		let amount = this.initial ? formatCentsForInput(this.initial.amountCents) : '';
 		const accounts = this.settings.accounts.filter((account) => !account.archived
-			|| [this.initial?.accountId, this.initial?.fromAccountId, this.initial?.toAccountId].includes(account.id));
+			|| account.id === this.initial?.accountId);
 		let accountId = this.initial?.accountId ?? accounts[0]?.id ?? '';
-		let fromAccountId = this.initial?.fromAccountId ?? accounts.find((account) => account.kind === 'bank')?.id ?? accounts[0]?.id ?? '';
-		let toAccountId = this.initial?.toAccountId ?? accounts.find((account) => account.kind === 'credit-card')?.id ?? accounts[1]?.id ?? '';
 		let categoryId = this.initial?.categoryId ?? '';
 
 		let accountDropdown: DropdownComponent;
@@ -34,7 +32,6 @@ export class TransactionModal extends Modal {
 		const typeSetting = new Setting(this.contentEl).setName('Tipo').addDropdown((dropdown) => dropdown
 			.addOption('expense', 'Despesa')
 			.addOption('income', 'Receita')
-			.addOption('transfer', 'Transferência')
 			.setValue(type)
 			.onChange((value) => {
 				type = value as TransactionType;
@@ -57,22 +54,6 @@ export class TransactionModal extends Modal {
 				accountId = value;
 			});
 		});
-		const fromSetting = new Setting(this.contentEl).setName('Origem').addDropdown((dropdown) => {
-			for (const account of accounts) {
-				dropdown.addOption(account.id, account.name);
-			}
-			return dropdown.setValue(fromAccountId).onChange((value) => {
-				fromAccountId = value;
-			});
-		});
-		const toSetting = new Setting(this.contentEl).setName('Destino').addDropdown((dropdown) => {
-			for (const account of accounts) {
-				dropdown.addOption(account.id, account.name);
-			}
-			return dropdown.setValue(toAccountId).onChange((value) => {
-				toAccountId = value;
-			});
-		});
 		const categorySetting = new Setting(this.contentEl).setName('Categoria').addDropdown((dropdown) => {
 			categoryDropdown = dropdown;
 			return dropdown.onChange((value) => {
@@ -93,10 +74,6 @@ export class TransactionModal extends Modal {
 		});
 
 		const refreshFields = (): void => {
-			accountSetting.settingEl.toggle(type !== 'transfer');
-			fromSetting.settingEl.toggle(type === 'transfer');
-			toSetting.settingEl.toggle(type === 'transfer');
-			categorySetting.settingEl.toggle(type !== 'transfer');
 			accountDropdown.setValue(accountId);
 			categoryDropdown.selectEl.empty();
 			categoryDropdown.addOption('', type === 'income' ? 'Sem categoria' : 'Selecione');
@@ -127,10 +104,8 @@ export class TransactionModal extends Modal {
 						id: this.initial?.id ?? createId('tx'),
 						date,
 						type,
-						accountId: type === 'transfer' ? undefined : accountId,
-						fromAccountId: type === 'transfer' ? fromAccountId : undefined,
-						toAccountId: type === 'transfer' ? toAccountId : undefined,
-						categoryId: type === 'transfer' ? undefined : categoryId || undefined,
+						accountId,
+						categoryId: categoryId || undefined,
 						description: description.trim(),
 						amountCents: parseBrlToCents(amount),
 						createdAt: this.initial?.createdAt ?? now,

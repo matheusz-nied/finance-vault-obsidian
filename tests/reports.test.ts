@@ -6,7 +6,6 @@ const transactions: Transaction[] = [
 	{ id: 'before', date: '2026-08-09', type: 'expense', accountId: 'bank', categoryId: 'food', description: 'Antes', amountCents: 2500, createdAt: '2026-08-09T10:00:00Z' },
 	{ id: 'salary', date: '2026-08-10', type: 'income', accountId: 'bank', categoryId: 'salary', description: 'Salário', amountCents: 500000, createdAt: '2026-08-10T10:00:00Z' },
 	{ id: 'card-purchase', date: '2026-08-15', type: 'expense', accountId: 'credit-card', categoryId: 'food', description: 'Cartão', amountCents: 12345, createdAt: '2026-08-15T10:00:00Z' },
-	{ id: 'card-payment', date: '2026-08-20', type: 'transfer', fromAccountId: 'bank', toAccountId: 'credit-card', description: 'Pagamento', amountCents: 12345, createdAt: '2026-08-20T10:00:00Z' },
 	{ id: 'transport', date: '2026-08-31', type: 'expense', accountId: 'cash', categoryId: 'transport', description: 'Transporte', amountCents: 4500, createdAt: '2026-08-31T10:00:00Z' },
 	{ id: 'housing', date: '2026-09-09', type: 'expense', accountId: 'bank', categoryId: 'housing', description: 'Moradia', amountCents: 80000, createdAt: '2026-09-09T10:00:00Z' },
 	{ id: 'next', date: '2026-09-10', type: 'income', accountId: 'bank', categoryId: 'extra-income', description: 'Próximo', amountCents: 120000, createdAt: '2026-09-10T10:00:00Z' },
@@ -35,7 +34,7 @@ describe('relatórios', () => {
 		expect(report.balanceCents).toBe(323155);
 	});
 
-	it('não duplica a despesa ao pagar o cartão e separa aportes', () => {
+	it('separa despesas de aportes no relatório anual', () => {
 		const report = calculateReport({ start: '2026-01-01', end: '2026-12-31' }, transactions, contributions);
 		expect(report.receivedCents).toBe(620000);
 		expect(report.spentCents).toBe(99345);

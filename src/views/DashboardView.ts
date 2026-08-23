@@ -225,7 +225,7 @@ export class DashboardView extends ItemView {
 		});
 		const type = filters.createEl('select');
 		type.setAttr('aria-label', 'Filtrar transações por tipo');
-		for (const [value, label] of [['all', 'Todos os tipos'], ['income', 'Receitas'], ['expense', 'Despesas'], ['transfer', 'Transferências']]) {
+		for (const [value, label] of [['all', 'Todos os tipos'], ['income', 'Receitas'], ['expense', 'Despesas']]) {
 			type.createEl('option', { value, text: label });
 		}
 		type.value = this.transactionTypeFilter;
@@ -247,14 +247,12 @@ export class DashboardView extends ItemView {
 			const item = list.createDiv({ cls: 'finance-vault-record' });
 			const body = item.createDiv({ cls: 'finance-vault-record-body' });
 			body.createEl('strong', { text: transaction.description });
-			const typeLabel = transaction.type === 'income' ? 'Receita' : transaction.type === 'expense' ? 'Despesa' : 'Transferência';
-			const accountLabel = transaction.type === 'transfer'
-				? `${this.accountName(transaction.fromAccountId)} → ${this.accountName(transaction.toAccountId)}`
-				: this.accountName(transaction.accountId);
+			const typeLabel = transaction.type === 'income' ? 'Receita' : 'Despesa';
+			const accountLabel = this.accountName(transaction.accountId);
 			body.createSpan({ text: `${formatLocalDate(transaction.date)} · ${typeLabel} · ${accountLabel}` });
 			const amount = item.createEl('strong', {
 				text: formatBrl(transaction.amountCents),
-				cls: transaction.type === 'income' ? 'is-positive' : transaction.type === 'expense' ? 'is-negative' : '',
+				cls: transaction.type === 'income' ? 'is-positive' : 'is-negative',
 			});
 			amount.setAttr('aria-label', `Valor ${formatBrl(transaction.amountCents)}`);
 			const actions = item.createDiv({ cls: 'finance-vault-record-actions' });

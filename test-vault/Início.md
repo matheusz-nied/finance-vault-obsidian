@@ -32,7 +32,7 @@ Os totais abaixo estão em centavos.
 - `2026-09-09`: último dia do ciclo.
 - `2026-09-10`: primeiro dia do ciclo seguinte.
 - Uma compra de `12345` no cartão é contabilizada como despesa.
-- A transferência de `12345` da conta bancária para o cartão representa o pagamento dessa compra e não entra novamente no total gasto.
+- A compra no cartão de `12345` entra no gasto uma única vez, na data da compra.
 - Os aportes permanecem separados das despesas de consumo.
 
 ## Carregar o plugin

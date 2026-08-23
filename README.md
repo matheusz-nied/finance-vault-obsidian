@@ -1,13 +1,13 @@
 # Finance Vault
 
-Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. Ele registra receitas, despesas, transferências, compras e pagamentos de cartão e aportes em arquivos Markdown legíveis dentro da própria vault.
+Finance Vault é um plugin local-first de finanças pessoais para o Obsidian. Ele registra receitas, despesas, compras no cartão e aportes em arquivos Markdown legíveis dentro da própria vault.
 
 ## Recursos do MVP
 
 - Relatórios por mês de calendário, ciclo financeiro e ano.
 - Ciclo padrão do dia 10 ao dia 9 seguinte, com regras futuras configuráveis.
 - Compras no cartão contabilizadas como despesa na data real.
-- Pagamentos de cartão tratados como transferências, sem duplicar gastos.
+- Compras no cartão contabilizadas uma única vez, na data real da compra.
 - Aportes separados das despesas de consumo.
 - Valores armazenados em centavos inteiros e exibidos em BRL.
 - Interface em português, responsiva e compatível com temas claros e escuros.

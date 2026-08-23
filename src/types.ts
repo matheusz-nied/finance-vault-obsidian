@@ -1,7 +1,7 @@
 export type LocalDate = string;
 export type MoneyCents = number;
 
-export type TransactionType = 'income' | 'expense' | 'transfer';
+export type TransactionType = 'income' | 'expense';
 export type AccountKind = 'cash' | 'bank' | 'credit-card';
 export type CategoryKind = 'income' | 'expense';
 export type ReportMode = 'month' | 'cycle' | 'year';
@@ -39,8 +39,6 @@ export interface Transaction {
 	date: LocalDate;
 	type: TransactionType;
 	accountId?: string;
-	fromAccountId?: string;
-	toAccountId?: string;
 	categoryId?: string;
 	description: string;
 	amountCents: MoneyCents;

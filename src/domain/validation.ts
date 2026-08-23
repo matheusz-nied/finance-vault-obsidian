@@ -39,37 +39,19 @@ export function validateTransaction(transaction: Transaction, settings: FinanceS
 	}
 	const accountIds = new Set(settings.accounts.map((account) => account.id));
 	const categories = new Map(settings.categories.map((category) => [category.id, category]));
-	if (transaction.type === 'income' || transaction.type === 'expense') {
-		if (!transaction.accountId || !accountIds.has(transaction.accountId)) {
-			throw new Error('Selecione uma conta válida.');
+	if (!transaction.accountId || !accountIds.has(transaction.accountId)) {
+		throw new Error('Selecione uma conta válida.');
+	}
+	if (transaction.type === 'expense') {
+		const category = transaction.categoryId ? categories.get(transaction.categoryId) : undefined;
+		if (!category || category.kind !== 'expense') {
+			throw new Error('Selecione uma categoria de despesa válida.');
 		}
-		if (transaction.fromAccountId || transaction.toAccountId) {
-			throw new Error('Receitas e despesas não usam origem e destino.');
-		}
-		if (transaction.type === 'expense') {
-			const category = transaction.categoryId ? categories.get(transaction.categoryId) : undefined;
-			if (!category || category.kind !== 'expense') {
-				throw new Error('Selecione uma categoria de despesa válida.');
-			}
-		}
-		if (transaction.categoryId) {
-			const category = categories.get(transaction.categoryId);
-			if (!category || category.kind !== transaction.type) {
-				throw new Error('A categoria não corresponde ao tipo da transação.');
-			}
-		}
-	} else {
-		if (!transaction.fromAccountId || !accountIds.has(transaction.fromAccountId)) {
-			throw new Error('Selecione uma conta de origem válida.');
-		}
-		if (!transaction.toAccountId || !accountIds.has(transaction.toAccountId)) {
-			throw new Error('Selecione uma conta de destino válida.');
-		}
-		if (transaction.fromAccountId === transaction.toAccountId) {
-			throw new Error('Origem e destino precisam ser diferentes.');
-		}
-		if (transaction.accountId || transaction.categoryId) {
-			throw new Error('Transferências não usam conta única ou categoria.');
+	}
+	if (transaction.categoryId) {
+		const category = categories.get(transaction.categoryId);
+		if (!category || category.kind !== transaction.type) {
+			throw new Error('A categoria não corresponde ao tipo da transação.');
 		}
 	}
 	return transaction;

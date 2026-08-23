@@ -13,8 +13,6 @@ const first = {
 	date: '2026-08-10',
 	type: 'expense',
 	accountId: 'bank',
-	fromAccountId: '',
-	toAccountId: '',
 	categoryId: 'food',
 	description: 'Mercado | feira',
 	amountCents: '1050',

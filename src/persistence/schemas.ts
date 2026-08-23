@@ -11,8 +11,6 @@ export const TRANSACTION_SCHEMA: MarkdownTableSchema = {
 		'date',
 		'type',
 		'accountId',
-		'fromAccountId',
-		'toAccountId',
 		'categoryId',
 		'description',
 		'amountCents',
@@ -46,8 +44,6 @@ export function transactionToCells(transaction: Transaction): Record<string, str
 		date: transaction.date,
 		type: transaction.type,
 		accountId: transaction.accountId ?? '',
-		fromAccountId: transaction.fromAccountId ?? '',
-		toAccountId: transaction.toAccountId ?? '',
 		categoryId: transaction.categoryId ?? '',
 		description: transaction.description,
 		amountCents: String(transaction.amountCents),
@@ -60,7 +56,7 @@ export function transactionFromCells(cells: Record<string, string>): Transaction
 	if (!cells.date || !isLocalDate(cells.date)) {
 		throw new Error('Data inválida.');
 	}
-	if (cells.type !== 'income' && cells.type !== 'expense' && cells.type !== 'transfer') {
+	if (cells.type !== 'income' && cells.type !== 'expense') {
 		throw new Error('Tipo de transação inválido.');
 	}
 	if (!cells.id || !cells.description || !cells.createdAt) {
@@ -71,8 +67,6 @@ export function transactionFromCells(cells: Record<string, string>): Transaction
 		date: cells.date,
 		type: cells.type,
 		accountId: optional(cells.accountId),
-		fromAccountId: optional(cells.fromAccountId),
-		toAccountId: optional(cells.toAccountId),
 		categoryId: optional(cells.categoryId),
 		description: cells.description,
 		amountCents: parseCents(cells.amountCents ?? ''),
