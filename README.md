@@ -66,7 +66,7 @@ npm run lint
 npm run build
 ```
 
-O build gera `main.js` na raiz. A vault de desenvolvimento em `test-vault/` contém fixtures de agosto e setembro de 2026 e um link para a raiz do projeto.
+O build gera `main.js` na raiz. A vault de desenvolvimento em `test-vault/` começa com tabelas financeiras vazias e contém um link para a raiz do projeto.
 
 ## Instalação manual
 

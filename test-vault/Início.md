@@ -1,41 +1,13 @@
 # Finance Vault — Vault de testes
 
-Esta vault é dedicada ao desenvolvimento e aos testes locais do plugin `finance-vault`. Todos os valores persistidos nas fixtures usam centavos inteiros, e cada registro fica no arquivo correspondente ao seu mês de calendário.
+Esta vault é dedicada ao desenvolvimento e aos testes locais do plugin `finance-vault`. Ela começa sem receitas, despesas, modelos fixos ou aportes cadastrados.
 
-## Dados de demonstração
+## Estado inicial
 
-### Transações
-
-- [[Financas/Transacoes/2026-08|Agosto de 2026]]
-- [[Financas/Transacoes/2026-09|Setembro de 2026]]
-
-### Investimentos
-
-- [[Financas/Investimentos/2026-08|Aportes de agosto de 2026]]
-- [[Financas/Investimentos/2026-09|Aportes de setembro de 2026]]
-
-## Totais esperados
-
-Os totais abaixo estão em centavos.
-
-| Período | Recebido | Gasto | Aportado |
-| --- | ---: | ---: | ---: |
-| Agosto de 2026 | 500000 | 19345 | 50000 |
-| Setembro de 2026 | 120000 | 80000 | 40000 |
-| Ciclo 2026-08-10 a 2026-09-09 | 500000 | 96845 | 80000 |
-| Ano de 2026 | 620000 | 99345 | 90000 |
-
-## Casos cobertos
-
-- `2026-08-09`: dia anterior ao início do ciclo.
-- `2026-08-10`: primeiro dia do ciclo.
-- `2026-09-09`: último dia do ciclo.
-- `2026-09-10`: primeiro dia do ciclo seguinte.
-- Uma compra de `12345` no cartão é contabilizada como despesa.
-- A compra no cartão de `12345` entra no gasto uma única vez, na data da compra.
-- Modelos fixos podem preencher receitas e despesas mensais sem criar lançamentos automaticamente.
-- O vínculo opcional `fixedTemplateId` permite identificar se um fixo já foi lançado no mês.
-- Os aportes permanecem separados das despesas de consumo.
+- As tabelas de transações e investimentos estão vazias.
+- As contas e categorias padrão são carregadas pelo plugin.
+- Nenhum modelo fixo está cadastrado.
+- Todo novo registro fica no arquivo correspondente ao mês de sua data real.
 
 ## Carregar o plugin
 
@@ -44,5 +16,6 @@ A pasta `.obsidian/plugins/finance-vault` aponta para a raiz deste repositório.
 1. Abra esta pasta no Obsidian usando **Open folder as vault**.
 2. Ative os plugins da comunidade nas configurações.
 3. Habilite **Finance Vault** na lista de plugins instalados.
+4. Recarregue o Obsidian depois de executar `npm run build`.
 
-O ID do plugin já está incluído na configuração local desta vault. Recarregue o Obsidian depois de executar `npm run build`.
+O ID do plugin já está incluído na configuração local desta vault.

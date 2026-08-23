@@ -15,8 +15,8 @@ function fixture(path: string): string {
 	return readFileSync(new URL(`../test-vault/${path}`, import.meta.url), 'utf8');
 }
 
-describe('vault de demonstração', () => {
-	it('usa o formato canônico e mantém os totais esperados', () => {
+describe('vault local de testes', () => {
+	it('começa vazia e usa o formato canônico', () => {
 		const transactionTables = [
 			parseMarkdownTable(fixture('Financas/Transacoes/2026-08.md'), TRANSACTION_SCHEMA),
 			parseMarkdownTable(fixture('Financas/Transacoes/2026-09.md'), TRANSACTION_SCHEMA),
@@ -34,8 +34,11 @@ describe('vault de demonstração', () => {
 			.flatMap((table) => table.rows)
 			.map((row) => validateInvestment(investmentFromCells(row.cells)));
 		const report = calculateReport({ start: '2026-08-10', end: '2026-09-09' }, transactions, investments);
-		expect(report.receivedCents).toBe(500000);
-		expect(report.spentCents).toBe(96845);
-		expect(report.contributedCents).toBe(80000);
+		expect(transactions).toEqual([]);
+		expect(investments).toEqual([]);
+		expect(report.receivedCents).toBe(0);
+		expect(report.spentCents).toBe(0);
+		expect(report.contributedCents).toBe(0);
+		expect(report.balanceCents).toBe(0);
 	});
 });
