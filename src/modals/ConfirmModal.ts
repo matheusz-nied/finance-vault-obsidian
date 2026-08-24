@@ -10,12 +10,12 @@ export class ConfirmModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.setTitle('Confirmar exclusão');
+		this.setTitle('Confirm deletion');
 		this.contentEl.createEl('p', { text: this.message });
 		new Setting(this.contentEl)
-			.addButton((button) => button.setButtonText('Cancelar').onClick(() => this.close()))
+			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
 			.addButton((button) => button
-				.setButtonText('Excluir')
+				.setButtonText('Delete')
 				.setDestructive()
 				.setCta()
 				.onClick(async () => {

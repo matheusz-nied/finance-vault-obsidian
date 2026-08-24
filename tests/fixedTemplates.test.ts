@@ -26,7 +26,26 @@ describe('modelos fixos', () => {
 	it('migra configurações antigas e normaliza modelos válidos', () => {
 		expect(normalizePluginData({ settings: {} }).settings.fixedTemplates).toEqual([]);
 		const data = normalizePluginData({ settings: { fixedTemplates: templates } });
-		expect(data.settings.schemaVersion).toBe(2);
+		expect(data.settings.schemaVersion).toBe(3);
 		expect(data.settings.fixedTemplates).toHaveLength(3);
+	});
+
+	it('translates untouched legacy defaults without changing custom names', () => {
+		const data = normalizePluginData({
+			settings: {
+				schemaVersion: 2,
+				accounts: [
+					{ id: 'cash', name: 'Dinheiro', kind: 'cash', archived: false },
+					{ id: 'bank', name: 'My bank', kind: 'bank', archived: false },
+				],
+				categories: [
+					{ id: 'salary', name: 'Salário', kind: 'income', archived: false },
+					{ id: 'food', name: 'Dining out', kind: 'expense', archived: false },
+				],
+			},
+		});
+
+		expect(data.settings.accounts.map((account) => account.name)).toEqual(['Cash', 'My bank']);
+		expect(data.settings.categories.map((category) => category.name)).toEqual(['Salary', 'Dining out']);
 	});
 });

@@ -14,7 +14,7 @@ export function isLeapYear(year: number): boolean {
 
 export function daysInMonth(year: number, month: number): number {
 	if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12) {
-		throw new Error('Ano ou mês inválido.');
+		throw new Error('Invalid year or month.');
 	}
 	const lengths = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 	return lengths[month - 1] ?? 0;
@@ -23,13 +23,13 @@ export function daysInMonth(year: number, month: number): number {
 export function parseLocalDate(value: string): DateParts {
 	const match = DATE_PATTERN.exec(value);
 	if (!match) {
-		throw new Error(`Data inválida: ${value}`);
+		throw new Error(`Invalid date: ${value}`);
 	}
 	const year = Number(match[1]);
 	const month = Number(match[2]);
 	const day = Number(match[3]);
 	if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) {
-		throw new Error(`Data inválida: ${value}`);
+		throw new Error(`Invalid date: ${value}`);
 	}
 	return { year, month, day };
 }
@@ -45,7 +45,7 @@ export function isLocalDate(value: string): value is LocalDate {
 
 export function localDate(year: number, month: number, day: number): LocalDate {
 	if (day < 1 || day > daysInMonth(year, month)) {
-		throw new Error('Dia inválido.');
+		throw new Error('Invalid day.');
 	}
 	return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -58,7 +58,7 @@ export function compareDates(left: LocalDate, right: LocalDate): number {
 
 export function addDays(value: LocalDate, delta: number): LocalDate {
 	if (!Number.isInteger(delta)) {
-		throw new Error('A quantidade de dias deve ser inteira.');
+		throw new Error('The number of days must be an integer.');
 	}
 	let { year, month, day } = parseLocalDate(value);
 	let remaining = delta;
@@ -88,7 +88,7 @@ export function addDays(value: LocalDate, delta: number): LocalDate {
 				month -= 1;
 			}
 			if (year < 1) {
-				throw new Error('A data resultante é anterior ao calendário suportado.');
+				throw new Error('The resulting date is earlier than the supported calendar.');
 			}
 			day = daysInMonth(year, month);
 		}
@@ -99,14 +99,14 @@ export function addDays(value: LocalDate, delta: number): LocalDate {
 
 export function addMonths(value: LocalDate, delta: number): LocalDate {
 	if (!Number.isInteger(delta)) {
-		throw new Error('A quantidade de meses deve ser inteira.');
+		throw new Error('The number of months must be an integer.');
 	}
 	const { year, month, day } = parseLocalDate(value);
 	const absoluteMonth = year * 12 + (month - 1) + delta;
 	const targetYear = Math.floor(absoluteMonth / 12);
 	const targetMonth = ((absoluteMonth % 12) + 12) % 12 + 1;
 	if (targetYear < 1) {
-		throw new Error('A data resultante é anterior ao calendário suportado.');
+		throw new Error('The resulting date is earlier than the supported calendar.');
 	}
 	return localDate(targetYear, targetMonth, Math.min(day, daysInMonth(targetYear, targetMonth)));
 }
@@ -131,7 +131,7 @@ export function yearRange(value: LocalDate): DateRange {
 
 export function monthKeysBetween(range: DateRange): string[] {
 	if (compareDates(range.start, range.end) > 0) {
-		throw new Error('O início do período deve ser anterior ao fim.');
+		throw new Error('The period start date must be earlier than its end date.');
 	}
 	const keys: string[] = [];
 	let cursor = monthRange(range.start).start;

@@ -26,7 +26,7 @@ describe('segmentos dos gráficos', () => {
 		expect(result).toHaveLength(6);
 		expect(result[5]).toEqual({
 			key: '__other__',
-			label: 'Outros (2)',
+			label: 'Other (2)',
 			amountCents: 1500,
 		});
 	});

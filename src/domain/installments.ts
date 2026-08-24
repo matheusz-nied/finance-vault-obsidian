@@ -34,7 +34,7 @@ export function splitInstallmentAmounts(totalCents: number, installmentCount: nu
 		throw new Error(`A quantidade de parcelas precisa estar entre 2 e ${MAX_INSTALLMENT_COUNT}.`);
 	}
 	if (totalCents < installmentCount) {
-		throw new Error('O valor total é pequeno demais para que todas as parcelas tenham ao menos um centavo.');
+		throw new Error('The total is too small for every installment to contain at least one cent.');
 	}
 	const base = Math.floor(totalCents / installmentCount);
 	const remainder = totalCents % installmentCount;
@@ -49,10 +49,10 @@ export function buildInstallmentTransactions(
 		throw new Error('O parcelamento precisa de um ID.');
 	}
 	if (!isLocalDate(input.purchaseDate) || !isLocalDate(input.firstInstallmentDate)) {
-		throw new Error('Informe datas válidas para a compra e a primeira parcela.');
+		throw new Error('Enter valid purchase and first-installment dates.');
 	}
 	if (compareDates(input.firstInstallmentDate, input.purchaseDate) < 0) {
-		throw new Error('A primeira parcela não pode ser anterior à data da compra.');
+		throw new Error('The first installment cannot be earlier than the purchase date.');
 	}
 	const amounts = splitInstallmentAmounts(input.totalCents, input.installmentCount);
 	return amounts.map((amountCents, index) => ({

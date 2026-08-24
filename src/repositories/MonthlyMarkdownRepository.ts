@@ -65,12 +65,12 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 			current = current ? `${current}/${part}` : part;
 			const existing = this.vault.getAbstractFileByPath(current);
 			if (existing instanceof TFile) {
-				throw new Error(`${current} existe, mas não é uma pasta.`);
+				throw new Error(`${current} exists, but it is not a folder.`);
 			}
 			if (!existing) {
 				await this.vault.createFolder(current);
 			} else if (!(existing instanceof TFolder)) {
-				throw new Error(`Não foi possível acessar a pasta ${current}.`);
+				throw new Error(`Could not access the folder ${current}.`);
 			}
 		}
 	}
@@ -81,7 +81,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 			return existing;
 		}
 		if (existing) {
-			throw new Error(`${path} existe, mas não é um arquivo.`);
+			throw new Error(`${path} exists, but it is not a file.`);
 		}
 		const folderPath = path.slice(0, path.lastIndexOf('/'));
 		await this.ensureFolder(folderPath);
@@ -104,7 +104,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 				continue;
 			}
 			if (!(file instanceof TFile)) {
-				diagnostics.push({ path, message: 'O caminho mensal não é um arquivo Markdown.' });
+				diagnostics.push({ path, message: 'The monthly path is not a Markdown file.' });
 				continue;
 			}
 			const content = await this.vault.cachedRead(file);
@@ -116,11 +116,11 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 				try {
 					const record = this.codec.validate(this.codec.fromCells(row.cells));
 					if (monthKey(record.date) !== key) {
-						diagnostics.push({ path, line: row.lineIndex + 1, message: `A data ${record.date} não pertence ao arquivo ${key}.` });
+						diagnostics.push({ path, line: row.lineIndex + 1, message: `The date ${record.date} does not belong in the ${key} file.` });
 						continue;
 					}
 					if (seenIds.has(record.id)) {
-						diagnostics.push({ path, line: row.lineIndex + 1, message: `ID duplicado no período: ${record.id}.` });
+						diagnostics.push({ path, line: row.lineIndex + 1, message: `Duplicate ID in the period: ${record.id}.` });
 						continue;
 					}
 					seenIds.add(record.id);
@@ -131,7 +131,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 					diagnostics.push({
 						path,
 						line: row.lineIndex + 1,
-						message: error instanceof Error ? error.message : 'Registro inválido.',
+						message: error instanceof Error ? error.message : 'Invalid record.',
 					});
 				}
 			}
@@ -158,7 +158,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 	private async deleteUnsafe(id: string, date: LocalDate): Promise<void> {
 		const file = this.fileAtDate(date);
 		if (!file) {
-			throw new Error(`Arquivo de origem não encontrado para ${id}.`);
+			throw new Error(`Source file not found for ${id}.`);
 		}
 		await this.vault.process(file, (content) => deleteMarkdownRow(content, this.schema, id));
 	}
@@ -173,11 +173,11 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 			for (const record of records) {
 				this.codec.validate(record);
 				if (ids.has(record.id)) {
-					throw new Error(`O lote contém o ID duplicado ${record.id}.`);
+					throw new Error(`The batch contains the duplicate ID ${record.id}.`);
 				}
 				ids.add(record.id);
 				if (await this.contains(record.date, record.id)) {
-					throw new Error(`Já existe um registro com o ID ${record.id}.`);
+					throw new Error(`A record with the ID ${record.id} already exists.`);
 				}
 			}
 			const created: T[] = [];
@@ -196,7 +196,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 					}
 				}
 				if (rollbackFailed) {
-					throw new Error('O parcelamento falhou e alguns lançamentos podem precisar de revisão manual.');
+					throw new Error('Creating the installment plan failed, and some entries may require manual review.');
 				}
 				throw error;
 			}
@@ -207,12 +207,12 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 		await this.serialized(async () => {
 			this.codec.validate(next);
 			if (next.id !== id) {
-				throw new Error('O ID de um registro existente não pode ser alterado.');
+				throw new Error('The ID of an existing record cannot be changed.');
 			}
 			if (monthKey(originalDate) === monthKey(next.date)) {
 				const file = this.fileAtDate(originalDate);
 				if (!file) {
-					throw new Error(`Arquivo de origem não encontrado para ${id}.`);
+					throw new Error(`Source file not found for ${id}.`);
 				}
 				await this.vault.process(file, (content) =>
 					updateMarkdownRow(content, this.schema, id, this.codec.toCells(next)),
@@ -243,7 +243,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 		await this.serialized(async () => {
 			for (const record of records) {
 				if (!(await this.contains(record.date, record.id))) {
-					throw new Error(`Registro ${record.id} não encontrado.`);
+					throw new Error(`Record ${record.id} not found.`);
 				}
 			}
 			const deleted: T[] = [];
@@ -262,7 +262,7 @@ export class MonthlyMarkdownRepository<T extends { id: string; date: LocalDate }
 					}
 				}
 				if (rollbackFailed) {
-					throw new Error('A exclusão falhou e alguns lançamentos podem precisar de revisão manual.');
+					throw new Error('Deletion failed, and some entries may require manual review.');
 				}
 				throw error;
 			}

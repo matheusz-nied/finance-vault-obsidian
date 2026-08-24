@@ -6,12 +6,12 @@ import { validateInvestment } from '../domain/validation';
 import type { InvestmentCategory, InvestmentContribution } from '../types';
 
 const CATEGORY_LABELS: Record<InvestmentCategory, string> = {
-	'fixed-income': 'Renda fixa',
-	stock: 'Ação',
+	'fixed-income': 'Fixed income',
+	stock: 'Stock',
 	reit: 'FII',
-	crypto: 'Cripto',
+	crypto: 'Crypto',
 	etf: 'ETF',
-	other: 'Outro',
+	other: 'Other',
 };
 
 export class InvestmentModal extends Modal {
@@ -24,42 +24,42 @@ export class InvestmentModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.setTitle(this.initial ? 'Editar aporte' : 'Novo aporte');
+		this.setTitle(this.initial ? 'Edit investment contribution' : 'New investment contribution');
 		this.modalEl.addClass('finance-vault-modal');
 		let date = this.initial?.date ?? todayLocal();
 		let asset = this.initial?.asset ?? '';
 		let category: InvestmentCategory = this.initial?.category ?? 'fixed-income';
 		let amount = this.initial ? formatCentsForInput(this.initial.amountCents) : '';
-		new Setting(this.contentEl).setName('Data').addText((text) => {
+		new Setting(this.contentEl).setName('Date').addText((text) => {
 			text.inputEl.type = 'date';
 			return text.setValue(date).onChange((value) => {
 				date = value;
 			});
 		});
-		new Setting(this.contentEl).setName('Ativo').addText((text) => text
-			.setPlaceholder('Ex.: Tesouro selic')
+		new Setting(this.contentEl).setName('Asset').addText((text) => text
+			.setPlaceholder('E.g. Treasury bond')
 			.setValue(asset)
 			.onChange((value) => {
 				asset = value;
 			}));
-		new Setting(this.contentEl).setName('Categoria').addDropdown((dropdown) => dropdown
+		new Setting(this.contentEl).setName('Category').addDropdown((dropdown) => dropdown
 			.addOptions(CATEGORY_LABELS)
 			.setValue(category)
 			.onChange((value) => {
 				category = value as InvestmentCategory;
 			}));
-		new Setting(this.contentEl).setName('Valor').setDesc('Use o formato 1234,56.').addText((text) => {
+		new Setting(this.contentEl).setName('Amount').setDesc('Use the format 1234.56 or 1234,56.').addText((text) => {
 			text.inputEl.inputMode = 'decimal';
 			return text.setPlaceholder('0,00').setValue(amount).onChange((value) => {
 				amount = value;
 			});
 		});
 		new Setting(this.contentEl)
-			.addButton((button) => button.setButtonText('Cancelar').onClick(() => this.close()))
-			.addButton((button) => button.setButtonText('Salvar').setCta().onClick(async () => {
+			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
+			.addButton((button) => button.setButtonText('Save').setCta().onClick(async () => {
 				try {
 					if (!isLocalDate(date)) {
-						throw new Error('Informe uma data válida.');
+						throw new Error('Enter a valid date.');
 					}
 					const now = new Date().toISOString();
 					const contribution: InvestmentContribution = {
@@ -75,7 +75,7 @@ export class InvestmentModal extends Modal {
 					await this.onSubmit(contribution);
 					this.close();
 				} catch (error) {
-					new Notice(error instanceof Error ? error.message : 'Não foi possível salvar o aporte.');
+					new Notice(error instanceof Error ? error.message : 'Could not save the investment contribution.');
 				}
 			}));
 	}

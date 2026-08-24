@@ -11,24 +11,41 @@ import { DEFAULT_CYCLE_RULE, validateCycleRules } from '../domain/cycle';
 import { isLocalDate } from '../domain/date';
 
 const DEFAULT_ACCOUNTS: Account[] = [
-	{ id: 'cash', name: 'Dinheiro', kind: 'cash', archived: false },
-	{ id: 'bank', name: 'Conta bancária', kind: 'bank', archived: false },
-	{ id: 'credit-card', name: 'Cartão de crédito', kind: 'credit-card', dueDay: 10, archived: false },
+	{ id: 'cash', name: 'Cash', kind: 'cash', archived: false },
+	{ id: 'bank', name: 'Bank account', kind: 'bank', archived: false },
+	{ id: 'credit-card', name: 'Credit card', kind: 'credit-card', dueDay: 10, archived: false },
 ];
 
 const DEFAULT_CATEGORIES: TransactionCategory[] = [
-	{ id: 'salary', name: 'Salário', kind: 'income', archived: false },
-	{ id: 'extra-income', name: 'Renda extra', kind: 'income', archived: false },
-	{ id: 'food', name: 'Alimentação', kind: 'expense', archived: false },
-	{ id: 'housing', name: 'Moradia', kind: 'expense', archived: false },
-	{ id: 'transport', name: 'Transporte', kind: 'expense', archived: false },
-	{ id: 'health', name: 'Saúde', kind: 'expense', archived: false },
-	{ id: 'leisure', name: 'Lazer', kind: 'expense', archived: false },
-	{ id: 'other-expense', name: 'Outros', kind: 'expense', archived: false },
+	{ id: 'salary', name: 'Salary', kind: 'income', archived: false },
+	{ id: 'extra-income', name: 'Extra income', kind: 'income', archived: false },
+	{ id: 'food', name: 'Food', kind: 'expense', archived: false },
+	{ id: 'housing', name: 'Housing', kind: 'expense', archived: false },
+	{ id: 'transport', name: 'Transportation', kind: 'expense', archived: false },
+	{ id: 'health', name: 'Health', kind: 'expense', archived: false },
+	{ id: 'leisure', name: 'Leisure', kind: 'expense', archived: false },
+	{ id: 'other-expense', name: 'Other', kind: 'expense', archived: false },
 ];
 
+const LEGACY_DEFAULT_ACCOUNT_NAMES: Record<string, string> = {
+	cash: 'Dinheiro',
+	bank: 'Conta bancária',
+	'credit-card': 'Cartão de crédito',
+};
+
+const LEGACY_DEFAULT_CATEGORY_NAMES: Record<string, string> = {
+	salary: 'Salário',
+	'extra-income': 'Renda extra',
+	food: 'Alimentação',
+	housing: 'Moradia',
+	transport: 'Transporte',
+	health: 'Saúde',
+	leisure: 'Lazer',
+	'other-expense': 'Outros',
+};
+
 export const DEFAULT_SETTINGS: FinanceSettings = {
-	schemaVersion: 2,
+	schemaVersion: 3,
 	dataRoot: 'Financas',
 	accounts: DEFAULT_ACCOUNTS,
 	categories: DEFAULT_CATEGORIES,
@@ -57,7 +74,7 @@ function normalizePendingMove(value: unknown): PendingMove | undefined {
 	return move as PendingMove;
 }
 
-function normalizeAccounts(value: unknown): Account[] {
+function normalizeAccounts(value: unknown, translateLegacyDefaults: boolean): Account[] {
 	if (!Array.isArray(value)) {
 		return DEFAULT_ACCOUNTS.map((account) => ({ ...account }));
 	}
@@ -71,7 +88,9 @@ function normalizeAccounts(value: unknown): Account[] {
 			&& (account.kind === 'cash' || account.kind === 'bank' || account.kind === 'credit-card');
 	}).map((account) => ({
 		...account,
-		name: account.name.trim(),
+		name: translateLegacyDefaults && account.name.trim() === LEGACY_DEFAULT_ACCOUNT_NAMES[account.id]
+			? DEFAULT_ACCOUNTS.find((candidate) => candidate.id === account.id)?.name ?? account.name.trim()
+			: account.name.trim(),
 		archived: Boolean(account.archived),
 		dueDay: account.kind === 'credit-card' && Number.isInteger(account.dueDay)
 			? Math.min(31, Math.max(1, account.dueDay ?? 10))
@@ -80,7 +99,7 @@ function normalizeAccounts(value: unknown): Account[] {
 	return result.length > 0 ? result : DEFAULT_ACCOUNTS.map((account) => ({ ...account }));
 }
 
-function normalizeCategories(value: unknown): TransactionCategory[] {
+function normalizeCategories(value: unknown, translateLegacyDefaults: boolean): TransactionCategory[] {
 	if (!Array.isArray(value)) {
 		return DEFAULT_CATEGORIES.map((category) => ({ ...category }));
 	}
@@ -92,7 +111,13 @@ function normalizeCategories(value: unknown): TransactionCategory[] {
 		return typeof category.id === 'string'
 			&& typeof category.name === 'string'
 			&& (category.kind === 'income' || category.kind === 'expense');
-	}).map((category) => ({ ...category, name: category.name.trim(), archived: Boolean(category.archived) }));
+	}).map((category) => ({
+		...category,
+		name: translateLegacyDefaults && category.name.trim() === LEGACY_DEFAULT_CATEGORY_NAMES[category.id]
+			? DEFAULT_CATEGORIES.find((candidate) => candidate.id === category.id)?.name ?? category.name.trim()
+			: category.name.trim(),
+		archived: Boolean(category.archived),
+	}));
 	return result.length > 0 ? result : DEFAULT_CATEGORIES.map((category) => ({ ...category }));
 }
 
@@ -156,14 +181,15 @@ export function normalizePluginData(value: unknown): FinancePluginData {
 	const rawSettings = data.settings && typeof data.settings === 'object'
 		? data.settings as Partial<FinanceSettings>
 		: {};
+	const translateLegacyDefaults = typeof rawSettings.schemaVersion !== 'number' || rawSettings.schemaVersion < 3;
 	return {
 		settings: {
-			schemaVersion: 2,
+			schemaVersion: 3,
 			dataRoot: typeof rawSettings.dataRoot === 'string' && rawSettings.dataRoot.trim()
 				? rawSettings.dataRoot.trim()
 				: DEFAULT_SETTINGS.dataRoot,
-			accounts: normalizeAccounts(rawSettings.accounts),
-			categories: normalizeCategories(rawSettings.categories),
+			accounts: normalizeAccounts(rawSettings.accounts, translateLegacyDefaults),
+			categories: normalizeCategories(rawSettings.categories, translateLegacyDefaults),
 			fixedTemplates: normalizeFixedTemplates(rawSettings.fixedTemplates),
 			cycleRules: normalizeCycleRules(rawSettings.cycleRules),
 		},

@@ -112,7 +112,7 @@ export interface PendingMove {
 }
 
 export interface FinanceSettings {
-	schemaVersion: 2;
+	schemaVersion: 3;
 	dataRoot: string;
 	accounts: Account[];
 	categories: TransactionCategory[];

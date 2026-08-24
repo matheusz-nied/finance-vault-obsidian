@@ -13,9 +13,9 @@ import type { AccountKind, CategoryKind } from '../types';
 import type FinanceVaultPlugin from '../main';
 
 const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
-	cash: 'Dinheiro',
-	bank: 'Conta bancária',
-	'credit-card': 'Cartão de crédito',
+	cash: 'Cash',
+	bank: 'Bank account',
+	'credit-card': 'Credit card',
 };
 
 export class FinanceSettingTab extends PluginSettingTab {
@@ -30,10 +30,10 @@ export class FinanceSettingTab extends PluginSettingTab {
 		return [
 			{
 				type: 'group',
-				heading: 'Dados',
+				heading: 'Data',
 				items: [{
-					name: 'Pasta de dados',
-					desc: 'Pasta da vault onde ficam as transações e os aportes mensais.',
+					name: 'Data folder',
+					desc: 'Vault folder that stores monthly transactions and investment contributions.',
 					render: (setting) => {
 						setting
 							.addText((text) => text
@@ -43,13 +43,13 @@ export class FinanceSettingTab extends PluginSettingTab {
 									dataRootDraft = value;
 								}))
 							.addButton((button) => button
-								.setButtonText('Aplicar')
+								.setButtonText('Apply')
 								.onClick(async () => {
 									try {
 										await this.financePlugin.changeDataRoot(dataRootDraft);
-										new Notice('Pasta financeira atualizada.');
+										new Notice('Finance data folder updated.');
 									} catch (error) {
-										new Notice(error instanceof Error ? error.message : 'Não foi possível alterar a pasta.');
+										new Notice(error instanceof Error ? error.message : 'Could not change the data folder.');
 									}
 								}));
 					},
@@ -57,18 +57,18 @@ export class FinanceSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'list',
-				heading: 'Contas',
-				emptyState: 'Nenhuma conta configurada.',
+				heading: 'Accounts',
+				emptyState: 'No accounts configured.',
 				addItem: {
-					name: 'Adicionar conta',
+					name: 'Add account',
 					action: () => {
 						void this.addAccount();
 					},
 				},
 				items: this.financePlugin.settings.accounts.map((account) => ({
 					name: account.name,
-					desc: account.archived ? 'Arquivada; preservada para o histórico.' : 'Disponível em novos lançamentos.',
-					aliases: ['conta', 'cartão', 'banco', 'dinheiro'],
+					desc: account.archived ? 'Archived; preserved for historical records.' : 'Available for new entries.',
+					aliases: ['account', 'card', 'bank', 'cash'],
 					render: (setting) => {
 						setting
 							.addText((text) => text.setValue(account.name).onChange(async (value) => {
@@ -90,7 +90,7 @@ export class FinanceSettingTab extends PluginSettingTab {
 									this.update();
 								}))
 							.addButton((button) => button
-								.setButtonText(account.archived ? 'Restaurar' : 'Arquivar')
+								.setButtonText(account.archived ? 'Restore' : 'Archive')
 								.onClick(async () => {
 									account.archived = !account.archived;
 									await this.financePlugin.saveSettings();
@@ -102,7 +102,7 @@ export class FinanceSettingTab extends PluginSettingTab {
 								text.inputEl.min = '1';
 								text.inputEl.max = '31';
 								return text
-									.setPlaceholder('Vencimento')
+									.setPlaceholder('Due day')
 									.setValue(String(account.dueDay ?? 10))
 									.onChange(async (value) => {
 										const day = Number(value);
@@ -118,18 +118,18 @@ export class FinanceSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'list',
-				heading: 'Categorias',
-				emptyState: 'Nenhuma categoria configurada.',
+				heading: 'Categories',
+				emptyState: 'No categories configured.',
 				addItem: {
-					name: 'Adicionar categoria',
+					name: 'Add category',
 					action: () => {
 						void this.addCategory('expense');
 					},
 				},
 				items: this.financePlugin.settings.categories.map((category) => ({
 					name: category.name,
-					desc: category.archived ? 'Arquivada; preservada para o histórico.' : category.kind === 'income' ? 'Receita' : 'Despesa',
-					aliases: ['categoria', 'receita', 'despesa'],
+					desc: category.archived ? 'Archived; preserved for historical records.' : category.kind === 'income' ? 'Income' : 'Expense',
+					aliases: ['category', 'income', 'expense'],
 					render: (setting) => {
 						setting
 							.addText((text) => text.setValue(category.name).onChange(async (value) => {
@@ -140,15 +140,15 @@ export class FinanceSettingTab extends PluginSettingTab {
 								}
 							}))
 							.addDropdown((dropdown) => dropdown
-								.addOption('income', 'Receita')
-								.addOption('expense', 'Despesa')
+								.addOption('income', 'Income')
+								.addOption('expense', 'Expense')
 								.setValue(category.kind)
 								.onChange(async (value) => {
 									category.kind = value as CategoryKind;
 									await this.financePlugin.saveSettings();
 								}))
 							.addButton((button) => button
-								.setButtonText(category.archived ? 'Restaurar' : 'Arquivar')
+								.setButtonText(category.archived ? 'Restore' : 'Archive')
 								.onClick(async () => {
 									category.archived = !category.archived;
 									await this.financePlugin.saveSettings();
@@ -159,10 +159,10 @@ export class FinanceSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'list',
-				heading: 'Modelos fixos',
-				emptyState: 'Nenhum modelo fixo cadastrado.',
+				heading: 'Recurring templates',
+				emptyState: 'No recurring templates configured.',
 				addItem: {
-					name: 'Adicionar modelo fixo',
+					name: 'Add recurring template',
 					action: () => {
 						this.openFixedTemplate();
 					},
@@ -170,14 +170,14 @@ export class FinanceSettingTab extends PluginSettingTab {
 				items: this.financePlugin.settings.fixedTemplates.map((template) => ({
 					name: template.name,
 					desc: this.fixedTemplateDescription(template),
-					aliases: ['fixo', 'recorrente', 'modelo', 'assinatura'],
+					aliases: ['recurring', 'template', 'subscription'],
 					render: (setting) => {
 						setting
 							.addButton((button) => button
-								.setButtonText('Editar')
+								.setButtonText('Edit')
 								.onClick(() => this.openFixedTemplate(template)))
 							.addButton((button) => button
-								.setButtonText(template.archived ? 'Restaurar' : 'Arquivar')
+								.setButtonText(template.archived ? 'Restore' : 'Archive')
 								.onClick(async () => {
 									template.archived = !template.archived;
 									await this.financePlugin.saveSettings();
@@ -188,15 +188,15 @@ export class FinanceSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'group',
-				heading: 'Ciclo financeiro',
+				heading: 'Financial cycle',
 				items: [
 					...this.financePlugin.settings.cycleRules.map((rule) => ({
-						name: `Início no dia ${rule.startDay}`,
-						desc: rule.effectiveFrom === '0001-01-01' ? 'Regra inicial' : `Vigente a partir de ${rule.effectiveFrom}`,
+						name: `Starts on day ${rule.startDay}`,
+						desc: rule.effectiveFrom === '0001-01-01' ? 'Initial rule' : `Effective from ${rule.effectiveFrom}`,
 					})),
 					{
-						name: 'Nova regra futura',
-						desc: 'A vigência cria uma fronteira contínua; o primeiro ciclo pode ser mais curto ou longo.',
+						name: 'New future rule',
+						desc: 'The effective date creates a continuous boundary; the first cycle may be shorter or longer.',
 						render: (setting) => {
 							setting
 								.addText((text) => {
@@ -209,11 +209,11 @@ export class FinanceSettingTab extends PluginSettingTab {
 									text.inputEl.type = 'number';
 									text.inputEl.min = '1';
 									text.inputEl.max = '31';
-									return text.setPlaceholder('Dia').setValue(startDay).onChange((value) => {
+									return text.setPlaceholder('Day').setValue(startDay).onChange((value) => {
 										startDay = value;
 									});
 								})
-								.addButton((button) => button.setButtonText('Adicionar').setCta().onClick(async () => {
+								.addButton((button) => button.setButtonText('Add').setCta().onClick(async () => {
 									await this.addCycleRule(effectiveFrom, startDay);
 								}));
 						},
@@ -226,7 +226,7 @@ export class FinanceSettingTab extends PluginSettingTab {
 	private async addAccount(): Promise<void> {
 		this.financePlugin.settings.accounts.push({
 			id: createId('account'),
-			name: 'Nova conta',
+			name: 'New account',
 			kind: 'bank',
 			archived: false,
 		});
@@ -237,7 +237,7 @@ export class FinanceSettingTab extends PluginSettingTab {
 	private async addCategory(kind: CategoryKind): Promise<void> {
 		this.financePlugin.settings.categories.push({
 			id: createId('category'),
-			name: kind === 'income' ? 'Nova receita' : 'Nova despesa',
+			name: kind === 'income' ? 'New income' : 'New expense',
 			kind,
 			archived: false,
 		});
@@ -260,8 +260,8 @@ export class FinanceSettingTab extends PluginSettingTab {
 
 	private fixedTemplateDescription(template: FixedTemplate): string {
 		const account = this.financePlugin.settings.accounts.find((candidate) => candidate.id === template.accountId);
-		const kind = template.type === 'income' ? 'Receita' : 'Despesa';
-		const archived = template.archived ? ' · Arquivado' : '';
+		const kind = template.type === 'income' ? 'Income' : 'Expense';
+		const archived = template.archived ? ' · Archived' : '';
 		return `${kind} · ${account?.name ?? template.accountId} · ${formatBrl(template.amountCents)}${archived}`;
 	}
 
@@ -271,19 +271,19 @@ export class FinanceSettingTab extends PluginSettingTab {
 			const rules = this.financePlugin.settings.cycleRules;
 			const last = rules[rules.length - 1];
 			if (!isLocalDate(effectiveFrom) || compareDates(effectiveFrom, todayLocal()) <= 0) {
-				throw new Error('A vigência precisa ser uma data futura.');
+				throw new Error('The effective date must be in the future.');
 			}
 			if (last && compareDates(effectiveFrom, last.effectiveFrom) <= 0) {
-				throw new Error('A vigência precisa ser posterior à última regra.');
+				throw new Error('The effective date must be later than the previous rule.');
 			}
 			if (!Number.isInteger(day) || day < 1 || day > 31) {
-				throw new Error('O dia inicial precisa estar entre 1 e 31.');
+				throw new Error('The start day must be between 1 and 31.');
 			}
 			rules.push({ id: createId('cycle-rule'), effectiveFrom, startDay: day });
 			await this.financePlugin.saveSettings();
 			this.update();
 		} catch (error) {
-			new Notice(error instanceof Error ? error.message : 'Não foi possível adicionar a regra.');
+			new Notice(error instanceof Error ? error.message : 'Could not add the rule.');
 		}
 	}
 }

@@ -21,7 +21,7 @@ export class FixedTemplateModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.setTitle(this.initial ? 'Editar modelo fixo' : 'Novo modelo fixo');
+		this.setTitle(this.initial ? 'Edit recurring template' : 'New recurring template');
 		this.modalEl.addClass('finance-vault-modal');
 		let name = this.initial?.name ?? '';
 		let type: TransactionType = this.initial?.type ?? 'expense';
@@ -32,21 +32,21 @@ export class FixedTemplateModal extends Modal {
 		let amount = this.initial ? formatCentsForInput(this.initial.amountCents) : '';
 		let categoryDropdown: DropdownComponent;
 
-		new Setting(this.contentEl).setName('Nome').addText((text) => text
-			.setPlaceholder('Ex.: Assinatura mensal')
+		new Setting(this.contentEl).setName('Name').addText((text) => text
+			.setPlaceholder('E.g. Monthly subscription')
 			.setValue(name)
 			.onChange((value) => {
 				name = value;
 			}));
-		new Setting(this.contentEl).setName('Tipo').addDropdown((dropdown) => dropdown
-			.addOption('expense', 'Despesa')
-			.addOption('income', 'Receita')
+		new Setting(this.contentEl).setName('Type').addDropdown((dropdown) => dropdown
+			.addOption('expense', 'Expense')
+			.addOption('income', 'Income')
 			.setValue(type)
 			.onChange((value) => {
 				type = value as TransactionType;
 				refreshCategories();
 			}));
-		new Setting(this.contentEl).setName('Conta').addDropdown((dropdown) => {
+		new Setting(this.contentEl).setName('Account').addDropdown((dropdown) => {
 			for (const account of accounts) {
 				dropdown.addOption(account.id, account.name);
 			}
@@ -54,13 +54,13 @@ export class FixedTemplateModal extends Modal {
 				accountId = value;
 			});
 		});
-		new Setting(this.contentEl).setName('Categoria').addDropdown((dropdown) => {
+		new Setting(this.contentEl).setName('Category').addDropdown((dropdown) => {
 			categoryDropdown = dropdown;
 			return dropdown.onChange((value) => {
 				categoryId = value;
 			});
 		});
-		new Setting(this.contentEl).setName('Valor sugerido').setDesc('Pode ser ajustado em cada lançamento.').addText((text) => {
+		new Setting(this.contentEl).setName('Suggested amount').setDesc('You can adjust it for each entry.').addText((text) => {
 			text.inputEl.inputMode = 'decimal';
 			return text.setPlaceholder('0,00').setValue(amount).onChange((value) => {
 				amount = value;
@@ -69,7 +69,7 @@ export class FixedTemplateModal extends Modal {
 
 		const refreshCategories = (): void => {
 			categoryDropdown.selectEl.empty();
-			categoryDropdown.addOption('', type === 'income' ? 'Sem categoria' : 'Selecione');
+			categoryDropdown.addOption('', type === 'income' ? 'No category' : 'Select');
 			for (const category of this.settings.categories) {
 				if ((!category.archived || category.id === this.initial?.categoryId) && category.kind === type) {
 					categoryDropdown.addOption(category.id, category.name);
@@ -87,8 +87,8 @@ export class FixedTemplateModal extends Modal {
 		refreshCategories();
 
 		new Setting(this.contentEl)
-			.addButton((button) => button.setButtonText('Cancelar').onClick(() => this.close()))
-			.addButton((button) => button.setButtonText('Salvar').setCta().onClick(async () => {
+			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
+			.addButton((button) => button.setButtonText('Save').setCta().onClick(async () => {
 				try {
 					const template: FixedTemplate = {
 						id: this.initial?.id ?? createId('fixed'),
@@ -103,7 +103,7 @@ export class FixedTemplateModal extends Modal {
 					await this.onSubmit(template);
 					this.close();
 				} catch (error) {
-					new Notice(error instanceof Error ? error.message : 'Não foi possível salvar o modelo fixo.');
+					new Notice(error instanceof Error ? error.message : 'Could not save the recurring template.');
 				}
 			}));
 	}

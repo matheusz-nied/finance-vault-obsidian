@@ -5,7 +5,7 @@ import type { MarkdownTableSchema } from './markdownTable';
 
 export const TRANSACTION_SCHEMA: MarkdownTableSchema = {
 	kind: 'transactions',
-	title: 'Transações',
+	title: 'Transactions',
 	columns: [
 		'id',
 		'date',
@@ -28,14 +28,14 @@ export const TRANSACTION_SCHEMA: MarkdownTableSchema = {
 
 export const INVESTMENT_SCHEMA: MarkdownTableSchema = {
 	kind: 'investments',
-	title: 'Aportes',
+	title: 'Investment contributions',
 	columns: ['id', 'date', 'asset', 'category', 'amountCents', 'createdAt', 'updatedAt'],
 	requiredColumns: ['id', 'date', 'asset', 'category', 'amountCents', 'createdAt'],
 };
 
 function parseCents(value: string): number {
 	if (!/^\d+$/.test(value)) {
-		throw new Error('amountCents deve conter apenas um inteiro positivo.');
+		throw new Error('amountCents must contain a positive integer.');
 	}
 	return assertMoneyCents(Number(value));
 }
@@ -66,13 +66,13 @@ export function transactionToCells(transaction: Transaction): Record<string, str
 
 export function transactionFromCells(cells: Record<string, string>): Transaction {
 	if (!cells.date || !isLocalDate(cells.date)) {
-		throw new Error('Data inválida.');
+		throw new Error('Invalid date.');
 	}
 	if (cells.type !== 'income' && cells.type !== 'expense') {
-		throw new Error('Tipo de transação inválido.');
+		throw new Error('Invalid transaction type.');
 	}
 	if (!cells.id || !cells.description || !cells.createdAt) {
-		throw new Error('Campos obrigatórios ausentes.');
+		throw new Error('Required fields are missing.');
 	}
 	return {
 		id: cells.id,
@@ -99,11 +99,11 @@ function optionalPositiveInteger(value: string | undefined, field: string): numb
 		return undefined;
 	}
 	if (!/^\d+$/.test(normalized)) {
-		throw new Error(`${field} precisa ser um inteiro positivo.`);
+		throw new Error(`${field} must be a positive integer.`);
 	}
 	const parsed = Number(normalized);
 	if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-		throw new Error(`${field} precisa ser um inteiro positivo.`);
+		throw new Error(`${field} must be a positive integer.`);
 	}
 	return parsed;
 }
@@ -122,10 +122,10 @@ export function investmentToCells(contribution: InvestmentContribution): Record<
 
 export function investmentFromCells(cells: Record<string, string>): InvestmentContribution {
 	if (!cells.date || !isLocalDate(cells.date)) {
-		throw new Error('Data inválida.');
+		throw new Error('Invalid date.');
 	}
 	if (!cells.id || !cells.asset || !cells.createdAt) {
-		throw new Error('Campos obrigatórios ausentes.');
+		throw new Error('Required fields are missing.');
 	}
 	if (
 		cells.category !== 'fixed-income'
@@ -135,7 +135,7 @@ export function investmentFromCells(cells: Record<string, string>): InvestmentCo
 		&& cells.category !== 'etf'
 		&& cells.category !== 'other'
 	) {
-		throw new Error('Categoria de investimento inválida.');
+		throw new Error('Invalid investment category.');
 	}
 	return {
 		id: cells.id,

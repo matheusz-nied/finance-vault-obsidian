@@ -26,8 +26,17 @@ export default class FinanceVaultPlugin extends Plugin {
 	investments!: InvestmentRepository;
 
 	async onload(): Promise<void> {
-		this.data = normalizePluginData(await this.loadData());
+		const storedData: unknown = await this.loadData();
+		const storedSchemaVersion = storedData && typeof storedData === 'object'
+			&& 'settings' in storedData && storedData.settings && typeof storedData.settings === 'object'
+			&& 'schemaVersion' in storedData.settings
+			? storedData.settings.schemaVersion
+			: undefined;
+		this.data = normalizePluginData(storedData);
 		this.settings = this.data.settings;
+		if (storedSchemaVersion !== this.settings.schemaVersion) {
+			await this.savePluginData();
+		}
 		const journal = {
 			setPendingMove: async (move: PendingMove | undefined): Promise<void> => {
 				this.data.pendingMove = move;
@@ -48,19 +57,19 @@ export default class FinanceVaultPlugin extends Plugin {
 
 		await this.recoverPendingMove();
 		this.registerView(FINANCE_VAULT_VIEW, (leaf) => new DashboardView(leaf, this));
-		this.addRibbonIcon('wallet-cards', 'Abrir finance vault', () => {
+		this.addRibbonIcon('wallet-cards', 'Open finance vault', () => {
 			void this.activateView();
 		});
 		this.addCommand({
 			id: 'open-dashboard',
-			name: 'Abrir dashboard',
+			name: 'Open dashboard',
 			callback: () => {
 				void this.activateView();
 			},
 		});
 		this.addCommand({
 			id: 'add-transaction',
-			name: 'Adicionar transação',
+			name: 'Add transaction',
 			callback: () => {
 				new TransactionModal(this.app, this.settings, undefined, async ({ transactions, updateFixedTemplate }) => {
 					await this.transactions.createMany(transactions);
@@ -74,7 +83,7 @@ export default class FinanceVaultPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: 'add-contribution',
-			name: 'Adicionar aporte',
+			name: 'Add investment contribution',
 			callback: () => {
 				new InvestmentModal(this.app, undefined, async (contribution) => {
 					await this.investments.create(contribution);
@@ -133,12 +142,12 @@ export default class FinanceVaultPlugin extends Plugin {
 	async changeDataRoot(rawPath: string): Promise<void> {
 		const trimmed = rawPath.trim();
 		if (!trimmed || trimmed.startsWith('/') || trimmed.split('/').includes('..')) {
-			throw new Error('Informe uma pasta relativa válida dentro da vault.');
+			throw new Error('Enter a valid relative folder path inside the vault.');
 		}
 		const target = normalizePath(trimmed);
 		const configDir = normalizePath(this.app.vault.configDir);
 		if (target === configDir || target.startsWith(`${configDir}/`)) {
-			throw new Error('A pasta de configuração do Obsidian não pode armazenar os dados financeiros.');
+			throw new Error('The Obsidian configuration folder cannot store financial data.');
 		}
 		if (target === this.settings.dataRoot) {
 			return;
@@ -147,10 +156,10 @@ export default class FinanceVaultPlugin extends Plugin {
 		const source = this.app.vault.getAbstractFileByPath(oldPath);
 		const destination = this.app.vault.getAbstractFileByPath(target);
 		if (destination) {
-			throw new Error('A pasta de destino já existe; nenhum arquivo foi alterado.');
+			throw new Error('The destination folder already exists; no files were changed.');
 		}
 		if (source instanceof TFile) {
-			throw new Error('A pasta atual está ocupada por um arquivo.');
+			throw new Error('The current folder path is occupied by a file.');
 		}
 		if (source instanceof TFolder) {
 			await this.app.vault.rename(source, target);
@@ -174,11 +183,11 @@ export default class FinanceVaultPlugin extends Plugin {
 			} else {
 				await this.investments.recoverMove(move);
 			}
-			new Notice('Uma movimentação financeira interrompida foi recuperada.');
+			new Notice('An interrupted financial record move was recovered.');
 		} catch (error) {
 			new Notice(error instanceof Error
 				? `Finance Vault: ${error.message}`
-				: 'Finance Vault não conseguiu recuperar uma movimentação pendente.');
+				: 'Finance Vault could not recover a pending record move.');
 		}
 	}
 

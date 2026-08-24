@@ -39,7 +39,7 @@ export class TransactionModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.setTitle(this.initial ? 'Editar transação' : 'Nova transação');
+		this.setTitle(this.initial ? 'Edit transaction' : 'New transaction');
 		this.modalEl.addClass('finance-vault-modal');
 		const editingInstallment = Boolean(this.initial?.installmentPlanId);
 		let fixedTemplateId = this.initial?.fixedTemplateId ?? this.options.fixedTemplateId ?? '';
@@ -72,10 +72,10 @@ export class TransactionModal extends Modal {
 		let updateTemplateToggle: ToggleComponent;
 
 		const fillSetting = new Setting(this.contentEl)
-			.setName('Preenchimento')
-			.setDesc('Um modelo apenas preenche os campos; o resultado é uma transação normal.')
+			.setName('Template')
+			.setDesc('A template only fills in the fields; the result is a regular transaction.')
 			.addDropdown((dropdown) => {
-				dropdown.addOption('', 'Lançamento avulso');
+				dropdown.addOption('', 'One-time entry');
 				for (const template of activeTemplates) {
 					dropdown.addOption(template.id, template.name);
 				}
@@ -83,11 +83,11 @@ export class TransactionModal extends Modal {
 					applyTemplate(value);
 				});
 			});
-		const typeSetting = new Setting(this.contentEl).setName('Tipo').addDropdown((dropdown) => {
+		const typeSetting = new Setting(this.contentEl).setName('Type').addDropdown((dropdown) => {
 			typeDropdown = dropdown;
 			return dropdown
-				.addOption('expense', 'Despesa')
-				.addOption('income', 'Receita')
+				.addOption('expense', 'Expense')
+				.addOption('income', 'Income')
 				.setValue(type)
 				.setDisabled(editingInstallment)
 				.onChange((value) => {
@@ -97,7 +97,7 @@ export class TransactionModal extends Modal {
 		});
 		typeSetting.setClass('finance-vault-field');
 
-		const dateSetting = new Setting(this.contentEl).setName('Data').addText((text) => {
+		const dateSetting = new Setting(this.contentEl).setName('Date').addText((text) => {
 			text.inputEl.type = 'date';
 			return text.setValue(date).onChange((value) => {
 				const previous = date;
@@ -109,7 +109,7 @@ export class TransactionModal extends Modal {
 				renderPreview();
 			});
 		});
-		new Setting(this.contentEl).setName('Conta').addDropdown((dropdown) => {
+		new Setting(this.contentEl).setName('Account').addDropdown((dropdown) => {
 			accountDropdown = dropdown;
 			for (const account of accounts) {
 				dropdown.addOption(account.id, account.name);
@@ -119,24 +119,24 @@ export class TransactionModal extends Modal {
 				refreshFields();
 			});
 		});
-		new Setting(this.contentEl).setName('Categoria').addDropdown((dropdown) => {
+		new Setting(this.contentEl).setName('Category').addDropdown((dropdown) => {
 			categoryDropdown = dropdown;
 			return dropdown.onChange((value) => {
 				categoryId = value;
 				renderPreview();
 			});
 		});
-		new Setting(this.contentEl).setName('Descrição').addText((text) => {
+		new Setting(this.contentEl).setName('Description').addText((text) => {
 			descriptionInput = text;
 			return text
-				.setPlaceholder('Ex.: Supermercado')
+				.setPlaceholder('E.g. Groceries')
 				.setValue(description)
 				.onChange((value) => {
 					description = value;
 					renderPreview();
 				});
 		});
-		const amountSetting = new Setting(this.contentEl).setName('Valor').setDesc('Use o formato 1234,56.').addText((text) => {
+		const amountSetting = new Setting(this.contentEl).setName('Amount').setDesc('Use the format 1234.56 or 1234,56.').addText((text) => {
 			amountInput = text;
 			text.inputEl.inputMode = 'decimal';
 			return text.setPlaceholder('0,00').setValue(amount).onChange((value) => {
@@ -145,18 +145,18 @@ export class TransactionModal extends Modal {
 			});
 		});
 		const installmentInfoSetting = new Setting(this.contentEl)
-			.setName('Parcela')
+			.setName('Installment')
 			.setDesc(editingInstallment
-				? `${this.initial?.installmentNumber}/${this.initial?.installmentCount} · Compra em ${formatLocalDate(this.initial?.installmentPurchaseDate ?? this.initial?.date ?? date)} · Total ${formatBrl(this.initial?.installmentTotalCents ?? this.initial?.amountCents ?? 0)}`
+				? `${this.initial?.installmentNumber}/${this.initial?.installmentCount} · Purchased on ${formatLocalDate(this.initial?.installmentPurchaseDate ?? this.initial?.date ?? date)} · Total ${formatBrl(this.initial?.installmentTotalCents ?? this.initial?.amountCents ?? 0)}`
 				: '');
 		const paymentSetting = new Setting(this.contentEl)
-			.setName('Pagamento')
-			.setDesc('Parcelamentos criam uma despesa em cada mês.')
+			.setName('Payment')
+			.setDesc('Installment plans create one expense in each month.')
 			.addDropdown((dropdown) => {
 				paymentDropdown = dropdown;
 				return dropdown
-					.addOption('single', 'À vista')
-					.addOption('installment', 'Parcelada')
+					.addOption('single', 'One-time')
+					.addOption('installment', 'Installments')
 					.setValue('single')
 					.onChange((value) => {
 						installmentMode = value === 'installment';
@@ -168,8 +168,8 @@ export class TransactionModal extends Modal {
 					});
 			});
 		const installmentCountSetting = new Setting(this.contentEl)
-			.setName('Quantidade de parcelas')
-			.setDesc(`Entre 2 e ${MAX_INSTALLMENT_COUNT}.`)
+			.setName('Number of installments')
+			.setDesc(`Between 2 and ${MAX_INSTALLMENT_COUNT}.`)
 			.addText((text) => {
 				text.inputEl.type = 'number';
 				text.inputEl.min = '2';
@@ -180,8 +180,8 @@ export class TransactionModal extends Modal {
 				});
 			});
 		const firstInstallmentSetting = new Setting(this.contentEl)
-			.setName('Primeira parcela')
-			.setDesc('Use outro mês se a compra entrar somente na fatura seguinte.')
+			.setName('First installment')
+			.setDesc('Choose another month if the purchase only appears on the next statement.')
 			.addText((text) => {
 				firstInstallmentInput = text;
 				text.inputEl.type = 'date';
@@ -191,11 +191,11 @@ export class TransactionModal extends Modal {
 					renderPreview();
 				});
 			});
-		const previewSetting = new Setting(this.contentEl).setName('Prévia das parcelas');
+		const previewSetting = new Setting(this.contentEl).setName('Installment preview');
 		const preview = previewSetting.controlEl.createDiv({ cls: 'finance-vault-installment-preview' });
 		const updateTemplateSetting = new Setting(this.contentEl)
-			.setName('Atualizar modelo')
-			.setDesc('Use quando a conta, categoria ou valor padrão mudou permanentemente.')
+			.setName('Update template')
+			.setDesc('Use this when the default account, category, or amount has changed permanently.')
 			.addToggle((toggle) => {
 				updateTemplateToggle = toggle;
 				return toggle.setValue(false).onChange((value) => {
@@ -218,7 +218,7 @@ export class TransactionModal extends Modal {
 					planId: 'preview',
 					purchaseDate: date,
 					firstInstallmentDate,
-					description: description || 'Compra parcelada',
+					description: description || 'Installment purchase',
 					accountId,
 					categoryId,
 					totalCents: parseBrlToCents(amount),
@@ -240,7 +240,7 @@ export class TransactionModal extends Modal {
 			} catch (error) {
 				preview.createSpan({
 					cls: 'finance-vault-period',
-					text: error instanceof Error ? error.message : 'Preencha os dados para visualizar as parcelas.',
+					text: error instanceof Error ? error.message : 'Fill in the fields to preview the installments.',
 				});
 			}
 		};
@@ -249,7 +249,7 @@ export class TransactionModal extends Modal {
 			typeDropdown.setValue(type);
 			accountDropdown.setValue(accountId);
 			categoryDropdown.selectEl.empty();
-			categoryDropdown.addOption('', type === 'income' ? 'Sem categoria' : 'Selecione');
+			categoryDropdown.addOption('', type === 'income' ? 'No category' : 'Select');
 			for (const category of this.settings.categories) {
 				if ((!category.archived
 					|| category.id === this.initial?.categoryId
@@ -276,8 +276,8 @@ export class TransactionModal extends Modal {
 			firstInstallmentSetting.settingEl.toggle(installmentMode && canInstallment());
 			previewSetting.settingEl.toggle(installmentMode && canInstallment());
 			updateTemplateSetting.settingEl.toggle(Boolean(fixedTemplateId) && !installmentMode);
-			dateSetting.setName(editingInstallment ? 'Data da parcela' : installmentMode ? 'Data da compra' : 'Data');
-			amountSetting.setName(editingInstallment ? 'Valor da parcela' : installmentMode ? 'Valor total' : 'Valor');
+			dateSetting.setName(editingInstallment ? 'Installment date' : installmentMode ? 'Purchase date' : 'Date');
+			amountSetting.setName(editingInstallment ? 'Installment amount' : installmentMode ? 'Total amount' : 'Amount');
 			renderPreview();
 		};
 
@@ -305,11 +305,11 @@ export class TransactionModal extends Modal {
 		}
 
 		new Setting(this.contentEl)
-			.addButton((button) => button.setButtonText('Cancelar').onClick(() => this.close()))
-			.addButton((button) => button.setButtonText('Salvar').setCta().onClick(async () => {
+			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
+			.addButton((button) => button.setButtonText('Save').setCta().onClick(async () => {
 				try {
 					if (!isLocalDate(date)) {
-						throw new Error('Informe uma data válida.');
+						throw new Error('Enter a valid date.');
 					}
 					const now = new Date().toISOString();
 					if (installmentMode && canInstallment()) {
@@ -328,7 +328,7 @@ export class TransactionModal extends Modal {
 							validateTransaction(transaction, this.settings);
 						}
 						await this.onSubmit({ transactions, updateFixedTemplate: false });
-						new Notice(`${transactions.length} parcelas foram criadas.`);
+						new Notice(`${transactions.length} installments were created.`);
 						this.close();
 						return;
 					}
@@ -353,7 +353,7 @@ export class TransactionModal extends Modal {
 					await this.onSubmit({ transactions: [transaction], updateFixedTemplate });
 					this.close();
 				} catch (error) {
-					new Notice(error instanceof Error ? error.message : 'Não foi possível salvar a transação.');
+					new Notice(error instanceof Error ? error.message : 'Could not save the transaction.');
 				}
 			}));
 	}

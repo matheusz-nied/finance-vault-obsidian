@@ -26,13 +26,13 @@ export function validateCycleRules(rules: readonly CycleRule[]): CycleRule[] {
 	for (const rule of sorted) {
 		parseLocalDate(rule.effectiveFrom);
 		if (!rule.id.trim() || ids.has(rule.id)) {
-			throw new Error('As regras de ciclo precisam de IDs únicos.');
+			throw new Error('Cycle rules must have unique IDs.');
 		}
 		if (dates.has(rule.effectiveFrom)) {
-			throw new Error('Não pode haver duas regras vigentes na mesma data.');
+			throw new Error('Two cycle rules cannot take effect on the same date.');
 		}
 		if (!Number.isInteger(rule.startDay) || rule.startDay < 1 || rule.startDay > 31) {
-			throw new Error('O início do ciclo deve estar entre 1 e 31.');
+			throw new Error('The cycle start day must be between 1 and 31.');
 		}
 		ids.add(rule.id);
 		dates.add(rule.effectiveFrom);
@@ -65,7 +65,7 @@ export function cycleForDate(value: LocalDate, inputRules: readonly CycleRule[])
 	}
 	const active = rules[activeIndex];
 	if (!active) {
-		throw new Error('Nenhuma regra de ciclo disponível.');
+		throw new Error('No cycle rule is available.');
 	}
 	const currentNatural = naturalBoundary(value, active.startDay);
 	const previousNatural = compareDates(currentNatural, value) <= 0

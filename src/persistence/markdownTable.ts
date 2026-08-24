@@ -109,10 +109,10 @@ export function parseMarkdownTable(content: string, schema: MarkdownTableSchema)
 	let rowLimit = lines.length;
 
 	if (markerStarts.length > 1 || markerEnds.length > 1) {
-		diagnostics.push('Existe mais de um bloco financeiro do mesmo tipo no arquivo.');
+		diagnostics.push('The file contains more than one financial block of the same type.');
 	}
 	if ((markerStart >= 0) !== (markerEnd >= 0) || markerEnd >= 0 && markerEnd <= markerStart) {
-		diagnostics.push('Os marcadores da tabela estão incompletos ou fora de ordem.');
+		diagnostics.push('The table markers are incomplete or out of order.');
 	} else if (markerStart >= 0 && markerEnd > markerStart) {
 		headerIndex = markerStart + 1;
 		rowLimit = markerEnd;
@@ -144,17 +144,17 @@ export function parseMarkdownTable(content: string, schema: MarkdownTableSchema)
 			rows: [],
 			headerLineIndex: -1,
 			insertLineIndex: lines.length,
-			diagnostics: [...diagnostics, 'Tabela financeira não encontrada.'],
+			diagnostics: [...diagnostics, 'Financial table not found.'],
 		};
 	}
 
 	const columns = splitTableRow(lines[headerIndex] ?? '') ?? [];
 	if (!schema.requiredColumns.every((column) => columns.includes(column))) {
-		diagnostics.push('A tabela não contém todas as colunas obrigatórias.');
+		diagnostics.push('The table does not contain all required columns.');
 	}
 	const separator = lines[headerIndex + 1];
 	if (!separator || !isSeparator(separator, columns.length)) {
-		diagnostics.push('O separador da tabela é inválido.');
+		diagnostics.push('The table separator is invalid.');
 	}
 	const rows: ParsedTableRow[] = [];
 	const seenIds = new Set<string>();
@@ -165,17 +165,17 @@ export function parseMarkdownTable(content: string, schema: MarkdownTableSchema)
 		}
 		const cells = splitTableRow(raw);
 		if (!cells || cells.length !== columns.length) {
-			diagnostics.push(`Linha ${index + 1}: quantidade de células inválida.`);
+			diagnostics.push(`Line ${index + 1}: invalid number of cells.`);
 			continue;
 		}
 		const row = rowFromCells(columns, cells, index, raw);
 		const id = row.cells.id;
 		if (!id) {
-			diagnostics.push(`Linha ${index + 1}: ID ausente.`);
+			diagnostics.push(`Line ${index + 1}: missing ID.`);
 			continue;
 		}
 		if (seenIds.has(id)) {
-			diagnostics.push(`Linha ${index + 1}: ID duplicado (${id}).`);
+			diagnostics.push(`Line ${index + 1}: duplicate ID (${id}).`);
 			continue;
 		}
 		seenIds.add(id);
@@ -190,7 +190,7 @@ function serializeRow(columns: readonly string[], values: Record<string, string>
 
 function requireMutableTable(table: ParsedMarkdownTable): void {
 	if (table.diagnostics.length > 0) {
-		throw new Error(`O arquivo possui problemas e não foi alterado: ${table.diagnostics.join(' ')}`);
+		throw new Error(`The file contains errors and was not changed: ${table.diagnostics.join(' ')}`);
 	}
 }
 
@@ -214,7 +214,7 @@ export function createMarkdownDocument(schema: MarkdownTableSchema): string {
 	const tableMarkers = markers(schema);
 	const header = `| ${schema.columns.join(' | ')} |`;
 	const separator = `| ${schema.columns.map((column) => column === 'amountCents' ? '---:' : '---').join(' | ')} |`;
-	return `# ${schema.title}\n\nValores monetários são armazenados como centavos inteiros em \`amountCents\`.\n\n${tableMarkers.start}\n${header}\n${separator}\n${tableMarkers.end}\n`;
+	return `# ${schema.title}\n\nMonetary amounts are stored as integer cents in \`amountCents\`.\n\n${tableMarkers.start}\n${header}\n${separator}\n${tableMarkers.end}\n`;
 }
 
 export function insertMarkdownRow(
@@ -226,7 +226,7 @@ export function insertMarkdownRow(
 	requireMutableTable(table);
 	addMissingSchemaColumns(table, schema);
 	if (table.rows.some((row) => row.cells.id === values.id)) {
-		throw new Error(`Já existe um registro com o ID ${values.id}.`);
+		throw new Error(`A record with the ID ${values.id} already exists.`);
 	}
 	table.lines.splice(table.insertLineIndex, 0, serializeRow(table.columns, values));
 	return table.lines.join(table.newline);
@@ -243,7 +243,7 @@ export function updateMarkdownRow(
 	addMissingSchemaColumns(table, schema);
 	const row = table.rows.find((candidate) => candidate.cells.id === id);
 	if (!row) {
-		throw new Error(`Registro ${id} não encontrado.`);
+		throw new Error(`Record ${id} not found.`);
 	}
 	const merged = { ...row.cells };
 	for (const column of schema.columns) {
@@ -258,7 +258,7 @@ export function deleteMarkdownRow(content: string, schema: MarkdownTableSchema, 
 	requireMutableTable(table);
 	const row = table.rows.find((candidate) => candidate.cells.id === id);
 	if (!row) {
-		throw new Error(`Registro ${id} não encontrado.`);
+		throw new Error(`Record ${id} not found.`);
 	}
 	table.lines.splice(row.lineIndex, 1);
 	return table.lines.join(table.newline);

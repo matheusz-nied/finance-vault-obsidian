@@ -81,7 +81,7 @@ describe('codec de tabelas Markdown', () => {
 			'<!-- finance-vault:table:v1:transactions:end -->',
 			`${parseMarkdownTable(content, TRANSACTION_SCHEMA).rows[0]?.raw ?? ''}\n<!-- finance-vault:table:v1:transactions:end -->`,
 		);
-		expect(parseMarkdownTable(duplicate, TRANSACTION_SCHEMA).diagnostics.some((message) => message.includes('duplicado'))).toBe(true);
+		expect(parseMarkdownTable(duplicate, TRANSACTION_SCHEMA).diagnostics.some((message) => message.includes('duplicate'))).toBe(true);
 		expect(() => updateMarkdownRow(duplicate, TRANSACTION_SCHEMA, 'tx-1', first)).toThrow();
 	});
 });

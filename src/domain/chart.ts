@@ -16,7 +16,7 @@ export function prepareChartSegments(
 	maximumSegments = 6,
 ): ChartSegment[] {
 	if (maximumSegments < 2) {
-		throw new Error('O gráfico precisa permitir pelo menos dois segmentos.');
+		throw new Error('The chart must allow at least two segments.');
 	}
 	const sorted = items
 		.filter((item) => item.amountCents > 0)
@@ -30,7 +30,7 @@ export function prepareChartSegments(
 		...visible,
 		{
 			key: '__other__',
-			label: `Outros (${remaining.length})`,
+			label: `Other (${remaining.length})`,
 			amountCents: safeSum(remaining.map((item) => item.amountCents)),
 		},
 	];
