@@ -670,6 +670,18 @@ export class DashboardView extends ItemView {
 			'Use Add contribution for investments. Remaining subtracts both expenses and contributions from income.',
 			'Use Cycle if your financial month starts on a different day. Month follows the calendar; Year shows the full year.',
 		]) steps.createEl('li', { text });
+		const support = modal.contentEl.createDiv({ cls: 'finance-vault-support' });
+		support.createEl('strong', { text: 'Enjoying the plugin?' });
+		support.createEl('p', {
+			text: 'If it makes tracking your money easier, give it a star on GitHub. It’s a simple way to support the project.',
+		});
+		const starLink = support.createEl('a', {
+			cls: 'finance-vault-support-link',
+			href: 'https://github.com/matheusz-nied/finance-vault-obsidian',
+			attr: { target: '_blank', rel: 'noopener noreferrer' },
+		});
+		setIcon(starLink.createSpan({ attr: { 'aria-hidden': 'true' } }), 'star');
+		starLink.createSpan({ text: 'Star on GitHub' });
 		modal.contentEl.createEl('button', { text: 'Got it', cls: 'mod-cta' }).addEventListener('click', () => modal.close());
 		modal.open();
 	}

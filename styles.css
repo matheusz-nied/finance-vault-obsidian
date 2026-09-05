@@ -525,6 +525,48 @@
 	line-height: 1.6;
 }
 
+.finance-vault-support {
+	margin-block: var(--size-4-5);
+	padding: var(--size-4-4);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+}
+
+.finance-vault-support p {
+	margin-block: var(--size-4-2) var(--size-4-3);
+	color: var(--text-muted);
+	line-height: 1.5;
+}
+
+.finance-vault-support-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	text-decoration: none;
+}
+
+.finance-vault-support-link:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+	text-decoration: none;
+}
+
+.finance-vault-support-link:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.finance-vault-support-link svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
 .finance-vault-modal {
 	width: min(640px, 95vw);
 }
