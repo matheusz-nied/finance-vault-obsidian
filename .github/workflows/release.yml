@@ -45,4 +45,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-          gh release create "$tag" --title="$tag" --draft --generate-notes main.js manifest.json styles.css
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const version = JSON.parse(readFileSync('manifest.json', 'utf8')).version;
+          const changelog = readFileSync('CHANGELOG.md', 'utf8');
+          const notes = changelog.split(`## ${version}\n`)[1]?.split('\n## ')[0];
+          if (!notes?.trim()) throw new Error('Missing release notes.');
+          writeFileSync('release-notes.md', `## ${version}\n${notes}`);
+          NODE
+          gh release create "$tag" --title="$tag" --draft --notes-file release-notes.md main.js manifest.json styles.css
+      - name: Verify attached files and publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          mkdir release-check
+          gh release download "$tag" --dir release-check
+          test "$(find release-check -type f | wc -l)" -eq 3
+          cmp main.js release-check/main.js
+          cmp manifest.json release-check/manifest.json
+          cmp styles.css release-check/styles.css
+          gh release edit "$tag" --draft=false --latest
+          gh release view "$tag" --json isDraft,url,assets

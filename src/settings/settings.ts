@@ -194,5 +194,7 @@ export function normalizePluginData(value: unknown): FinancePluginData {
 			cycleRules: normalizeCycleRules(rawSettings.cycleRules),
 		},
 		pendingMove: normalizePendingMove(data.pendingMove),
+		lastSeenReleaseVersion: typeof data.lastSeenReleaseVersion === 'string' ? data.lastSeenReleaseVersion : undefined,
+		showReleaseNotes: data.showReleaseNotes !== false,
 	};
 }

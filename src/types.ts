@@ -121,6 +121,8 @@ export interface FinanceSettings {
 }
 
 export interface FinancePluginData {
+	lastSeenReleaseVersion?: string;
+	showReleaseNotes?: boolean;
 	settings: FinanceSettings;
 	pendingMove?: PendingMove;
 }

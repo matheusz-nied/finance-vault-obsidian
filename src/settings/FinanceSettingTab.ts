@@ -3,6 +3,7 @@ import {
 	Notice,
 	PluginSettingTab,
 	type SettingDefinitionItem,
+	type Setting,
 } from 'obsidian';
 import { addDays, compareDates, isLocalDate, todayLocal } from '../domain/date';
 import { createId } from '../domain/id';
@@ -25,7 +26,9 @@ export class FinanceSettingTab extends PluginSettingTab {
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		let dataRootDraft = this.financePlugin.settings.dataRoot;
-		let effectiveFrom = addDays(todayLocal(), 1);
+		const lastRule = this.financePlugin.settings.cycleRules.at(-1);
+		let effectiveFrom = addDays(lastRule && compareDates(lastRule.effectiveFrom, todayLocal()) > 0
+			? lastRule.effectiveFrom : todayLocal(), 1);
 		let startDay = '10';
 		return [
 			{
@@ -174,35 +177,76 @@ export class FinanceSettingTab extends PluginSettingTab {
 				type: 'group',
 				heading: 'Financial cycle',
 				items: [
+					{
+						name: 'How financial cycles work',
+						desc: 'Choose the day of the month your financial period starts, for example your payday. Day 10 means September 10 through October 9. This changes the cycle view, not the dates of your transactions.',
+					},
 					...this.financePlugin.settings.cycleRules.map((rule) => ({
-						name: `Starts on day ${rule.startDay}`,
-						desc: rule.effectiveFrom === '0001-01-01' ? 'Initial rule' : `Effective from ${rule.effectiveFrom}`,
+						name: `Cycle starts on day ${rule.startDay} of each month`,
+						desc: rule.effectiveFrom === '0001-01-01'
+							? 'Initial rule. Kept to preserve past cycles.'
+							: compareDates(rule.effectiveFrom, todayLocal()) > 0
+								? `Scheduled for ${rule.effectiveFrom}. You can delete this rule before it takes effect.`
+								: `Effective from ${rule.effectiveFrom}. Kept to preserve past cycles.`,
+						render: (setting: Setting) => {
+							if (compareDates(rule.effectiveFrom, todayLocal()) > 0) {
+								setting.addButton((button) => button
+									.setButtonText('Delete rule')
+									.onClick(async () => this.deleteCycleRule(rule.id)));
+							}
+						},
 					})),
 					{
-						name: 'New future rule',
-						desc: 'The effective date creates a continuous boundary; the first cycle may be shorter or longer.',
+						name: 'New rule takes effect on',
+						desc: 'Choose a future date after all scheduled rules. A new cycle begins on this date, so the transition cycle may be shorter or longer.',
 						render: (setting) => {
-							setting
-								.addText((text) => {
-									text.inputEl.type = 'date';
-									return text.setValue(effectiveFrom).onChange((value) => {
-										effectiveFrom = value;
-									});
-								})
-								.addText((text) => {
-									text.inputEl.type = 'number';
-									text.inputEl.min = '1';
-									text.inputEl.max = '31';
-									return text.setPlaceholder('Day').setValue(startDay).onChange((value) => {
-										startDay = value;
-									});
-								})
-								.addButton((button) => button.setButtonText('Add').setCta().onClick(async () => {
-									await this.addCycleRule(effectiveFrom, startDay);
-								}));
+							setting.addText((text) => {
+								text.inputEl.type = 'date';
+								text.inputEl.setAttribute('aria-label', 'New rule takes effect on');
+								return text.setValue(effectiveFrom).onChange((value) => {
+									effectiveFrom = value;
+								});
+							});
+						},
+					},
+					{
+						name: 'Day of the month the cycle starts',
+						desc: 'Enter 1–31. For example, 10 starts each cycle on the 10th and ends it on the 9th of the next month. In shorter months, days 29–31 use the last available day.',
+						render: (setting) => {
+							setting.addText((text) => {
+								text.inputEl.type = 'number';
+								text.inputEl.min = '1';
+								text.inputEl.max = '31';
+								text.inputEl.step = '1';
+								text.inputEl.setAttribute('aria-label', 'Day of the month the cycle starts');
+								return text.setPlaceholder('Day').setValue(startDay).onChange((value) => {
+									startDay = value;
+								});
+							}).addButton((button) => button.setButtonText('Schedule rule').setCta().onClick(async () => {
+								await this.addCycleRule(effectiveFrom, startDay);
+							}));
 						},
 					},
 				],
+			},
+			{
+				type: 'group',
+				heading: 'Updates',
+				items: [{
+					name: 'Show release notes after updates',
+					desc: 'Automatically show what changed when a new version is installed.',
+					render: (setting) => {
+						setting.addToggle((toggle) => toggle.setValue(this.financePlugin.data.showReleaseNotes !== false).onChange(async (value) => {
+							this.financePlugin.data.showReleaseNotes = value;
+							await this.financePlugin.saveSettings();
+						}));
+					},
+				}, {
+					name: 'Release history',
+					render: (setting) => {
+						setting.addButton((button) => button.setButtonText('Open release notes').onClick(() => this.financePlugin.openReleaseNotes()));
+					},
+				}],
 			},
 			{
 				type: 'group',
@@ -274,6 +318,18 @@ export class FinanceSettingTab extends PluginSettingTab {
 		const kind = template.type === 'income' ? 'Income' : 'Expense';
 		const archived = template.archived ? ' · Archived' : '';
 		return `${kind} · ${account?.name ?? template.accountId} · ${formatBrl(template.amountCents)}${archived}`;
+	}
+
+	private async deleteCycleRule(id: string): Promise<void> {
+		const rules = this.financePlugin.settings.cycleRules;
+		const rule = rules.find((candidate) => candidate.id === id);
+		if (!rule || compareDates(rule.effectiveFrom, todayLocal()) <= 0) {
+			new Notice('Only future cycle rules can be deleted. Past and active rules preserve your cycle history.');
+			return;
+		}
+		this.financePlugin.settings.cycleRules = rules.filter((candidate) => candidate.id !== id);
+		await this.financePlugin.saveSettings();
+		this.update();
 	}
 
 	private async addCycleRule(effectiveFrom: string, startDay: string): Promise<void> {

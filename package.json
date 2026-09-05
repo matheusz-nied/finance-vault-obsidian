@@ -1,6 +1,6 @@
 {
 	"name": "finance-vault",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "See where your money goes. Track income, expenses, credit card installments, recurring payments, and investment contributions in one clear dashboard.",
 	"main": "main.js",
 	"type": "module",

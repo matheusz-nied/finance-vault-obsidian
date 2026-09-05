@@ -5,6 +5,8 @@ import {
 	TFolder,
 	normalizePath,
 } from 'obsidian';
+import { ReleaseNotesModal } from './modals/ReleaseNotesModal';
+import { shouldShowReleaseNotes } from './settings/releaseNotes';
 import { InvestmentModal } from './modals/InvestmentModal';
 import { TransactionModal } from './modals/TransactionModal';
 import { InvestmentRepository } from './repositories/InvestmentRepository';
@@ -92,8 +94,15 @@ export default class FinanceVaultPlugin extends Plugin {
 			},
 		});
 		this.addSettingTab(new FinanceSettingTab(this.app, this));
+		this.addCommand({ id: 'open-release-notes', name: 'Open release notes', callback: () => this.openReleaseNotes() });
+		const showNotes = shouldShowReleaseNotes(this.data, this.manifest.version, storedData != null);
+		if (!showNotes && this.data.lastSeenReleaseVersion !== this.manifest.version) {
+			this.data.lastSeenReleaseVersion = this.manifest.version;
+			await this.savePluginData();
+		}
 
 		this.app.workspace.onLayoutReady(() => {
+			if (showNotes) this.openReleaseNotes();
 			this.registerEvent(this.app.vault.on('create', (file) => this.handleVaultChange(file.path)));
 			this.registerEvent(this.app.vault.on('modify', (file) => this.handleVaultChange(file.path)));
 			this.registerEvent(this.app.vault.on('delete', (file) => this.handleVaultChange(file.path)));
@@ -102,6 +111,13 @@ export default class FinanceVaultPlugin extends Plugin {
 				this.handleVaultChange(file.path);
 			}));
 		});
+	}
+
+	openReleaseNotes(): void {
+		new ReleaseNotesModal(this.app, () => {
+			this.data.lastSeenReleaseVersion = this.manifest.version;
+			void this.savePluginData();
+		}).open();
 	}
 
 	async activateView(): Promise<void> {

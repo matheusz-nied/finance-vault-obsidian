@@ -27,6 +27,8 @@ Choose **Month** for the calendar view, **Cycle** for a period aligned with your
 
 Switch between an overview, searchable transactions, recurring items and installments, and investment contributions. Find an entry by description, account, or category, then edit it in place.
 
+In **Settings → Finance Vault → Financial cycle**, choose when a new rule takes effect and the day of the month each cycle starts. Use **Delete rule** to remove a scheduled rule before its effective date. Active and past rules are kept to preserve cycle history.
+
 Your records always stay in the file for their actual month. Changing the view never moves your data.
 
 ## Make your first entry

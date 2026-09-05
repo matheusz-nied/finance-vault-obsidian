@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1
+
+### New
+
+- Delete a scheduled financial cycle rule from Settings → Finance Vault before it takes effect. Active and past rules remain available to preserve cycle history.
+- Read release notes after updates, reopen them with Open release notes, or turn off Show release notes after updates in settings.
+
+### Improved
+
+- Financial cycle settings now separate the effective date from the monthly start day, with labels and a concrete example.
+
+### Fixed
+
+- The suggested effective date now follows the last scheduled rule, avoiding an invalid default when a future rule already exists.
+
 ## 0.2.0
 
 ### Easier navigation
