@@ -4,6 +4,8 @@
 
 Bring your income, everyday spending, credit card installments, and investment contributions into one clear dashboard. See what came in, what went out, and what remains for the month — right inside Obsidian.
 
+![Finance Vault dashboard showing yearly totals and transactions](docs/assets/finance-vault-dashboard.png)
+
 Every entry stays in your vault as readable Markdown. No sign-up, no bank connection, no subscription. Just your records, on your terms.
 
 **[Install Finance Vault](#installation)** and record your first expense with the built-in accounts and categories. Personalize them whenever you're ready.
