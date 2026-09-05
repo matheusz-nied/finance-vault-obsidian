@@ -1,7 +1,7 @@
 {
 	"name": "finance-vault",
-	"version": "0.1.2",
-	"description": "Local-first personal finance plugin for Obsidian with Markdown storage.",
+	"version": "0.2.0",
+	"description": "See where your money goes. Track income, expenses, credit card installments, recurring payments, and investment contributions in one clear dashboard.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

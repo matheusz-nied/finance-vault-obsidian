@@ -1,4 +1,4 @@
-import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Modal, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
 import {
 	calculateDonutSlices,
 	prepareChartSegments,
@@ -13,6 +13,8 @@ import {
 } from '../domain/installments';
 import { formatBrl } from '../domain/money';
 import { calculateReport } from '../domain/reports';
+import { entryDateForPeriod, filterTransactions, periodLabel } from './dashboardModel';
+import { FixedTemplateModal } from '../modals/FixedTemplateModal';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { InvestmentModal } from '../modals/InvestmentModal';
 import { TransactionModal, type TransactionModalOptions } from '../modals/TransactionModal';
@@ -41,7 +43,9 @@ const INVESTMENT_LABELS: Record<InvestmentCategory, string> = {
 };
 
 export class DashboardView extends ItemView {
-	private mode: ReportMode = 'cycle';
+	private mode: ReportMode = 'month';
+	private page: 'overview' | 'transactions' | 'planning' | 'investments' = 'overview';
+	private accountFilter = 'all';
 	private anchor = todayLocal();
 	private transactionTypeFilter = 'all';
 	private investmentChartGroup: InvestmentChartGroup = 'category';
@@ -110,14 +114,27 @@ export class DashboardView extends ItemView {
 				...installmentTransactionQuery.diagnostics,
 			]);
 			this.renderSummary(container, report);
-			this.renderFixedTemplates(container, fixedTransactionQuery.records, period);
-			this.renderInstallmentPlans(container, installmentTransactionQuery.records, installmentAnchor);
-			if (this.mode === 'year') {
-				this.renderYearSummary(container, transactionQuery.records, investmentQuery.records);
+			this.renderPageNavigation(container);
+			if (this.page === 'overview') {
+				if (transactionQuery.records.length === 0 && investmentQuery.records.length === 0) {
+					this.renderEmptyState(container, 'Start with one entry',
+						'No entries in this period. Add an expense or income above, or use the arrows to explore another period. You can rename the default accounts in Settings → Finance Vault.');
+				}
+				this.renderBreakdown(container, report);
+				if (this.mode === 'year') {
+					this.renderYearSummary(container, transactionQuery.records, investmentQuery.records);
+				}
+			} else if (this.page === 'transactions') {
+				this.renderTransactions(container, transactionQuery.records);
+			} else if (this.page === 'planning') {
+				this.renderFixedTemplates(container, fixedTransactionQuery.records, period);
+				this.renderInstallmentPlans(container, installmentTransactionQuery.records, installmentAnchor);
+			} else {
+				if (report.contributedCents > 0) this.renderInvestmentChart(container, report);
+				this.renderInvestments(container, investmentQuery.records);
 			}
-			this.renderTransactions(container, transactionQuery.records);
-			this.renderInvestments(container, investmentQuery.records);
 		} catch (error) {
+			if (version !== this.renderVersion) return;
 			container.empty();
 			container.createEl('h2', { text: 'Finance vault' });
 			container.createDiv({
@@ -134,10 +151,12 @@ export class DashboardView extends ItemView {
 	): void {
 		const plans = summarizeActiveInstallmentPlans(transactions, asOf);
 		if (plans.length === 0) {
+			this.renderEmptyState(container, 'No upcoming installments', 'To split a purchase, add an expense, choose a credit card account, then select Installments under Payment.');
 			return;
 		}
 		const section = container.createEl('section', { cls: 'finance-vault-section' });
-		section.createEl('h3', { text: 'Active installment plans' });
+		section.createEl('h3', { text: 'Upcoming installments' });
+		section.createEl('p', { cls: 'finance-vault-period', text: `From ${formatLocalDate(asOf)} onward, regardless of the selected report period.` });
 		const list = section.createDiv({ cls: 'finance-vault-record-list' });
 		for (const plan of plans) {
 			const row = list.createDiv({ cls: 'finance-vault-record' });
@@ -183,18 +202,21 @@ export class DashboardView extends ItemView {
 	private renderHeader(container: HTMLElement, period: DateRange): void {
 		const header = container.createDiv({ cls: 'finance-vault-header' });
 		const title = header.createDiv();
-		title.createEl('h2', { text: 'Finance vault' });
+		title.createEl('h2', { text: periodLabel(this.mode, period) });
 		title.createEl('p', {
 			text: `${formatLocalDate(period.start)} — ${formatLocalDate(period.end)}`,
 			cls: 'finance-vault-period',
 		});
 		const actions = header.createDiv({ cls: 'finance-vault-actions' });
-		this.createActionButton(actions, 'plus-circle', 'New transaction', () => this.openTransaction());
-		this.createActionButton(actions, 'landmark', 'New contribution', () => this.openInvestment());
+		this.createActionButton(actions, 'minus', 'Add expense', () => this.openTransaction(undefined, { type: 'expense' }));
+		this.createActionButton(actions, 'plus', 'Add income', () => this.openTransaction(undefined, { type: 'income' }), false);
+		this.createActionButton(actions, 'landmark', 'Add contribution', () => this.openInvestment(), false);
+		this.createIconButton(actions, 'circle-help', 'Getting started', () => this.openGuide());
 
 		const modeBar = container.createDiv({ cls: 'finance-vault-mode-bar' });
+		const modes = modeBar.createDiv({ cls: 'finance-vault-period-modes', attr: { role: 'group', 'aria-label': 'Report period' } });
 		for (const [mode, label] of [['month', 'Month'], ['cycle', 'Cycle'], ['year', 'Year']] as const) {
-			const button = modeBar.createEl('button', { text: label, cls: 'finance-vault-mode-button' });
+			const button = modes.createEl('button', { text: label, cls: 'finance-vault-mode-button' });
 			button.toggleClass('is-active', this.mode === mode);
 			button.setAttr('aria-pressed', String(this.mode === mode));
 			button.addEventListener('click', () => {
@@ -204,12 +226,18 @@ export class DashboardView extends ItemView {
 		}
 		const navigation = modeBar.createDiv({ cls: 'finance-vault-navigation' });
 		this.createIconButton(navigation, 'chevron-left', 'Previous period', () => this.movePeriod(-1));
-		const todayButton = navigation.createEl('button', { text: 'Today' });
+		const todayButton = navigation.createEl('button', { text: this.mode === 'month' ? 'This month' : this.mode === 'year' ? 'This year' : 'Current cycle' });
 		todayButton.addEventListener('click', () => {
 			this.anchor = todayLocal();
 			void this.refresh();
 		});
 		this.createIconButton(navigation, 'chevron-right', 'Next period', () => this.movePeriod(1));
+		container.createEl('p', {
+			cls: 'finance-vault-period-hint',
+			text: this.mode === 'cycle'
+				? 'A cycle can span two months and includes future entries dated in the period. Set its start day in Settings → Finance Vault → Financial cycle.'
+				: 'Totals include all entries dated in this period, including future dates.',
+		});
 	}
 
 	private movePeriod(direction: -1 | 1): void {
@@ -247,11 +275,14 @@ export class DashboardView extends ItemView {
 
 	private renderSummary(container: HTMLElement, report: PeriodReport): void {
 		const cards = container.createDiv({ cls: 'finance-vault-summary' });
-		this.renderMetric(cards, 'Income', report.receivedCents, 'is-positive');
-		this.renderMetric(cards, 'Expenses', report.spentCents, 'is-negative');
-		this.renderMetric(cards, 'Contributions', report.contributedCents, 'is-investment');
-		this.renderMetric(cards, 'Balance', report.balanceCents, report.balanceCents >= 0 ? 'is-positive' : 'is-negative');
+		this.renderMetric(cards, 'Income', report.receivedCents, 'is-positive', 'Money received in the period');
+		this.renderMetric(cards, 'Expenses', report.spentCents, 'is-negative', 'Includes dated card installments');
+		this.renderMetric(cards, 'Contributions', report.contributedCents, 'is-investment', 'Money added to investments');
+		this.renderMetric(cards, 'Remaining', report.balanceCents, report.balanceCents >= 0 ? 'is-positive' : 'is-negative', 'Income − expenses − contributions');
+		container.createEl('p', { cls: 'finance-vault-period-hint', text: 'Remaining is the result for this period, not your bank account balance.' });
+	}
 
+	private renderBreakdown(container: HTMLElement, report: PeriodReport): void {
 		const categories = Object.entries(report.spentByCategory).sort((left, right) => right[1] - left[1]);
 		if (categories.length > 0 || report.contributedCents > 0) {
 			const charts = container.createDiv({ cls: 'finance-vault-chart-grid' });
@@ -276,9 +307,10 @@ export class DashboardView extends ItemView {
 
 		const creditCards = this.financePlugin.settings.accounts.filter((account) => account.kind === 'credit-card'
 			&& (!account.archived || Boolean(report.spentByAccount[account.id])));
-		if (creditCards.length > 0) {
+		if (creditCards.some((account) => report.spentByAccount[account.id])) {
 			const section = container.createEl('section', { cls: 'finance-vault-section' });
 			section.createEl('h3', { text: 'Expenses by credit card' });
+			section.createEl('p', { cls: 'finance-vault-period', text: 'Entries dated in this period; these totals are not a credit card statement.' });
 			const list = section.createDiv({ cls: 'finance-vault-category-list' });
 			for (const account of creditCards) {
 				const item = list.createDiv({ cls: 'finance-vault-category-item' });
@@ -383,14 +415,23 @@ export class DashboardView extends ItemView {
 		displayedPeriod: DateRange,
 	): void {
 		const items = fixedTemplatesForMonth(this.financePlugin.settings.fixedTemplates, transactions, this.anchor);
-		if (items.length === 0) {
-			return;
-		}
 		const { year, month } = parseLocalDate(this.anchor);
 		const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
 			.format(new Date(year, month - 1, 1));
 		const section = container.createEl('section', { cls: 'finance-vault-section' });
-		section.createEl('h3', { text: `Recurring items for ${monthLabel}` });
+		const heading = section.createDiv({ cls: 'finance-vault-chart-header' });
+		heading.createEl('h3', { text: `Recurring items for ${monthLabel}` });
+		this.createActionButton(heading, 'plus', 'Create recurring template', () => {
+			new FixedTemplateModal(this.app, this.financePlugin.settings, undefined, async (template) => {
+				this.financePlugin.settings.fixedTemplates.push(template);
+				await this.financePlugin.saveSettings();
+			}).open();
+		}, false);
+		section.createEl('p', { cls: 'finance-vault-period', text: 'Templates are reminders. Only entries you record count in the totals. This checklist always covers the month named above.' });
+		if (items.length === 0) {
+			this.renderEmptyState(section, 'Make next month easier', 'Create a template for salary, rent or subscriptions. Review the amount and date each month before recording it.');
+			return;
+		}
 		const launched = items.filter((item) => item.transactions.length > 0).length;
 		section.createEl('p', {
 			cls: 'finance-vault-period',
@@ -408,7 +449,7 @@ export class DashboardView extends ItemView {
 			const displayedOccurrences = item.transactions
 				.filter((transaction) => isWithinRange(transaction.date, displayedPeriod));
 			const launchLabel = item.transactions.length === 0
-				? 'Not posted'
+				? 'Pending'
 				: displayedOccurrences.length === 0
 					? 'Posted this month, outside the displayed period'
 					: displayedOccurrences.length < item.transactions.length
@@ -422,7 +463,7 @@ export class DashboardView extends ItemView {
 					this.openTransaction(item.transactions[0]);
 				});
 			} else {
-				this.createActionButton(row, 'plus-circle', 'Post', () => {
+				this.createActionButton(row, 'plus-circle', 'Record entry', () => {
 					this.openTransaction(undefined, {
 						fixedTemplateId: item.template.id,
 						date: this.anchor,
@@ -432,10 +473,11 @@ export class DashboardView extends ItemView {
 		}
 	}
 
-	private renderMetric(container: HTMLElement, label: string, value: number, className: string): void {
+	private renderMetric(container: HTMLElement, label: string, value: number, className: string, description: string): void {
 		const card = container.createDiv({ cls: `finance-vault-metric ${className}` });
 		card.createSpan({ text: label });
 		card.createEl('strong', { text: formatBrl(value) });
+		card.createEl('small', { text: description });
 	}
 
 	private renderYearSummary(
@@ -455,7 +497,7 @@ export class DashboardView extends ItemView {
 			card.createSpan({ text: `Income: ${formatBrl(report.receivedCents)}` });
 			card.createSpan({ text: `Expenses: ${formatBrl(report.spentCents)}` });
 			card.createSpan({ text: `Contributions: ${formatBrl(report.contributedCents)}` });
-			card.createSpan({ text: `Balance: ${formatBrl(report.balanceCents)}` });
+			card.createSpan({ text: `Remaining: ${formatBrl(report.balanceCents)}` });
 		}
 	}
 
@@ -463,33 +505,54 @@ export class DashboardView extends ItemView {
 		const section = container.createEl('section', { cls: 'finance-vault-section' });
 		section.createEl('h3', { text: 'Transactions' });
 		const filters = section.createDiv({ cls: 'finance-vault-filters' });
-		const search = filters.createEl('input', { type: 'search', placeholder: 'Filter by description…' });
+		const search = filters.createEl('input', { type: 'search', placeholder: 'Search description, category or account…' });
 		search.value = this.search;
-		search.setAttr('aria-label', 'Filter transactions by description');
-		search.addEventListener('change', () => {
-			this.search = search.value;
-			void this.refresh();
-		});
+		search.setAttr('aria-label', 'Search transactions');
 		const type = filters.createEl('select');
 		type.setAttr('aria-label', 'Filter transactions by type');
 		for (const [value, label] of [['all', 'All types'], ['income', 'Income'], ['expense', 'Expenses']]) {
 			type.createEl('option', { value, text: label });
 		}
 		type.value = this.transactionTypeFilter;
-		type.addEventListener('change', () => {
-			this.transactionTypeFilter = type.value;
-			void this.refresh();
-		});
-		const query = this.search.trim().toLocaleLowerCase('en-US');
-		const filtered = transactions
-			.filter((item) => this.transactionTypeFilter === 'all' || item.type === this.transactionTypeFilter)
-			.filter((item) => !query || item.description.toLocaleLowerCase('en-US').includes(query))
-			.sort((left, right) => right.date.localeCompare(left.date));
-		const list = section.createDiv({ cls: 'finance-vault-record-list' });
-		if (filtered.length === 0) {
-			list.createDiv({ cls: 'finance-vault-empty', text: 'No transactions in this period.' });
-			return;
+		const account = filters.createEl('select', { attr: { 'aria-label': 'Filter transactions by account' } });
+		account.createEl('option', { value: 'all', text: 'All accounts' });
+		for (const item of this.financePlugin.settings.accounts) {
+			if (!item.archived || item.id === this.accountFilter || transactions.some((transaction) => transaction.accountId === item.id)) {
+				account.createEl('option', { value: item.id, text: item.name });
+			}
 		}
+		account.value = this.accountFilter;
+		const clear = filters.createEl('button', { text: 'Clear filters' });
+		const count = section.createEl('p', { cls: 'finance-vault-period', attr: { role: 'status' } });
+		const list = section.createDiv({ cls: 'finance-vault-record-list' });
+		const renderList = (): void => {
+			const filtered = filterTransactions(transactions, {
+				search: this.search, type: this.transactionTypeFilter, accountId: this.accountFilter,
+			}, this.financePlugin.settings);
+			count.setText(`${filtered.length} of ${transactions.length} entries · Filters affect this list only.`);
+			clear.disabled = !this.search && this.transactionTypeFilter === 'all' && this.accountFilter === 'all';
+			list.empty();
+			if (filtered.length === 0) {
+				this.renderEmptyState(list, transactions.length ? 'No matching entries' : 'No transactions in this period',
+					transactions.length ? 'Try another search or clear the filters to see all entries.' : 'Use Add expense or Add income to record an entry for this period.');
+				return;
+			}
+			this.renderTransactionRows(list, filtered);
+		};
+		search.addEventListener('input', () => { this.search = search.value; renderList(); });
+		type.addEventListener('change', () => { this.transactionTypeFilter = type.value; renderList(); });
+		account.addEventListener('change', () => { this.accountFilter = account.value; renderList(); });
+		clear.addEventListener('click', () => {
+			this.search = search.value = '';
+			this.transactionTypeFilter = type.value = 'all';
+			this.accountFilter = account.value = 'all';
+			renderList();
+			search.focus();
+		});
+		renderList();
+	}
+
+	private renderTransactionRows(list: HTMLElement, filtered: readonly Transaction[]): void {
 		for (const transaction of filtered) {
 			const item = list.createDiv({ cls: 'finance-vault-record' });
 			const body = item.createDiv({ cls: 'finance-vault-record-body' });
@@ -499,7 +562,7 @@ export class DashboardView extends ItemView {
 			const installmentLabel = transaction.installmentNumber && transaction.installmentCount
 				? ` · Installment ${transaction.installmentNumber}/${transaction.installmentCount}`
 				: '';
-			body.createSpan({ text: `${formatLocalDate(transaction.date)} · ${typeLabel} · ${accountLabel}${installmentLabel}` });
+			body.createSpan({ text: `${formatLocalDate(transaction.date)} · ${typeLabel} · ${accountLabel} · ${this.categoryName(transaction.categoryId ?? 'uncategorized')}${installmentLabel}` });
 			const amount = item.createEl('strong', {
 				text: formatBrl(transaction.amountCents),
 				cls: transaction.type === 'income' ? 'is-positive' : 'is-negative',
@@ -525,7 +588,7 @@ export class DashboardView extends ItemView {
 		section.createEl('h3', { text: 'Investment contributions' });
 		const list = section.createDiv({ cls: 'finance-vault-record-list' });
 		if (contributions.length === 0) {
-			list.createDiv({ cls: 'finance-vault-empty', text: 'No investment contributions in this period.' });
+			this.renderEmptyState(list, 'Track what you invest', 'Use Add contribution to record money added to an asset. Contributions reduce the period’s remaining amount and are kept separate from expenses.');
 			return;
 		}
 		for (const contribution of [...contributions].sort((left, right) => right.date.localeCompare(left.date))) {
@@ -565,7 +628,7 @@ export class DashboardView extends ItemView {
 				await this.financePlugin.updateFixedTemplateFromTransaction(transaction);
 			}
 			await this.refresh();
-		}, options).open();
+		}, { date: entryDateForPeriod(this.currentPeriod(), todayLocal()), ...options }).open();
 	}
 
 	private openInvestment(initial?: InvestmentContribution): void {
@@ -576,7 +639,39 @@ export class DashboardView extends ItemView {
 				await this.financePlugin.investments.create(contribution);
 			}
 			await this.refresh();
-		}).open();
+		}, entryDateForPeriod(this.currentPeriod(), todayLocal())).open();
+	}
+
+	private renderPageNavigation(container: HTMLElement): void {
+		const navigation = container.createEl('nav', { cls: 'finance-vault-pages', attr: { 'aria-label': 'Dashboard sections' } });
+		for (const [page, label] of [['overview', 'Overview'], ['transactions', 'Transactions'], ['planning', 'Recurring & installments'], ['investments', 'Investments']] as const) {
+			const button = navigation.createEl('button', { text: label });
+			button.toggleClass('is-active', this.page === page);
+			button.setAttr('aria-pressed', String(this.page === page));
+			button.addEventListener('click', () => { this.page = page; void this.refresh(); });
+		}
+	}
+
+	private renderEmptyState(container: HTMLElement, title: string, description: string): void {
+		const state = container.createDiv({ cls: 'finance-vault-empty' });
+		state.createEl('h3', { text: title });
+		state.createEl('p', { text: description });
+	}
+
+	private openGuide(): void {
+		const modal = new Modal(this.app);
+		modal.setTitle('Getting started');
+		const steps = modal.contentEl.createEl('ol', { cls: 'finance-vault-guide' });
+		for (const text of [
+			'Personalize your accounts and categories in Settings → Finance Vault. Default accounts are ready to use.',
+			'Choose a month, then use Add expense or Add income. Check the date, account and amount before saving.',
+			'Open Transactions to search, filter, edit or delete your entries.',
+			'Use Recurring & installments for monthly reminders. For a purchase in installments, add an expense and select a credit card account.',
+			'Use Add contribution for investments. Remaining subtracts both expenses and contributions from income.',
+			'Use Cycle if your financial month starts on a different day. Month follows the calendar; Year shows the full year.',
+		]) steps.createEl('li', { text });
+		modal.contentEl.createEl('button', { text: 'Got it', cls: 'mod-cta' }).addEventListener('click', () => modal.close());
+		modal.open();
 	}
 
 	private accountName(id: string | undefined): string {
@@ -588,8 +683,8 @@ export class DashboardView extends ItemView {
 			?? (id === 'uncategorized' ? 'Uncategorized' : id);
 	}
 
-	private createActionButton(container: HTMLElement, icon: string, label: string, callback: () => void): void {
-		const button = container.createEl('button', { cls: 'mod-cta finance-vault-action-button' });
+	private createActionButton(container: HTMLElement, icon: string, label: string, callback: () => void, primary = true): void {
+		const button = container.createEl('button', { cls: `finance-vault-action-button${primary ? ' mod-cta' : ''}` });
 		const iconEl = button.createSpan();
 		setIcon(iconEl, icon);
 		button.createSpan({ text: label });

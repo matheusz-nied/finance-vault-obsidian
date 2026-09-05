@@ -1,48 +1,56 @@
 # Finance Vault
 
-Your finances fit in a Markdown file. Literally.
+**See where your money goes. Keep the details in your vault.**
 
-Finance Vault is a personal finance plugin for Obsidian that keeps everything inside your own vault: every transaction becomes a line in a `.md` file you can read, version in git, or open in any editor. No account, no cloud, no third-party server knowing how much you spent on delivery this month.
+Bring your income, everyday spending, credit card installments, and investment contributions into one clear dashboard. See what came in, what went out, and what remains for the month — right inside Obsidian.
 
-If you already use Obsidian to organize your life, now your money lives there too.
+Every entry stays in your vault as readable Markdown. No sign-up, no bank connection, no subscription. Just your records, on your terms.
 
-## Why use this?
+**[Install Finance Vault](#installation)** and record your first expense with the built-in accounts and categories. Personalize them whenever you're ready.
 
-Because spreadsheets are a chore and banking apps show you ads.
+*Currently supports Brazilian reais (BRL). Entries are recorded manually.*
 
-- **Your data is yours alone.** Zero network calls, zero telemetry, zero ads. If this plugin vanished from the face of the earth tomorrow, your records are still there, in plain text.
-- **Logging a transaction takes seconds.** Account, category, amount, date, description. Done.
-- **Your credit card is no longer a mystery.** Installment purchase? The plugin creates every month's installment for you, cents included.
-- **Those same fixed expenses every month?** Set them up once (salary, rent, Netflix) and log them with one click from the monthly checklist.
-- **Investments kept apart from everyday spending.** A contribution is a contribution, an expense is an expense — in the reports, they never mix.
-- **Works on your phone.** Responsive interface, light and dark themes, fully offline.
+## Less guesswork. A clearer picture.
 
-## What it does
+- **Understand your spending.** See expenses by category and credit card, with charts that make the biggest costs easy to spot.
+- **Know what remains.** View income, expenses, and investment contributions together, with a clear calculation of what's left for the period.
+- **Keep installments in sight.** Enter a purchase total once. Finance Vault splits it across the months and shows upcoming installments.
+- **Stop retyping recurring entries.** Save templates for salary, rent, and subscriptions, then review and record them from a monthly checklist.
+- **Track the money you invest.** See how much you've contributed to each asset or investment type, separately from everyday expenses.
+- **Keep control of your records.** Works offline, with no telemetry or ads. Your Markdown files remain readable even without the plugin.
 
-**Accounts that match how you actually use money:** cash, bank accounts, and credit cards. Expenses group by card and by category, so you can see exactly what is eating your budget.
+## A financial view that fits your month
 
-**Fixed templates:** salary, subscriptions, recurring bills — set them up once and forget about them. Every month the checklist shows what's left to log. Important: creating a template doesn't touch your totals. The amount only counts once you click **Post** (and you can edit before confirming, because the electricity bill is never the same twice).
+Choose **Month** for the calendar view, **Cycle** for a period aligned with your payday, or **Year** to see the bigger picture. A cycle can run from the 10th of one month to the 9th of the next, for example.
 
-**Installment purchases:** bought something in 10x on your card? Enter the total, the number of installments, and the first due date. The plugin creates one expense per month, splits the cents without changing the total, and shows active installments in the dashboard — with options to edit the next installment or cancel the remaining ones.
+Switch between an overview, searchable transactions, recurring items and installments, and investment contributions. Find an entry by description, account, or category, then edit it in place.
 
-**Contributions:** track investments by type (fixed income, stocks, REITs, ETFs, crypto...) or by asset, with value and percentage charts. These are the totals you contributed in the period — the plugin doesn't try to guess returns or market prices.
+Your records always stay in the file for their actual month. Changing the view never moves your data.
 
-**Three views of the same money:**
-- **Month** — the classic, day 1 to the last day.
-- **Cycle** — a configurable window that can span two months (by default, from the 10th of one month to the 9th of the next). If your paycheck lands on the 10th, the cycle is the view that finally makes sense to you.
-- **Year** — the big picture.
+## Make your first entry
 
-Transactions always live in the file of the month they actually happened in. Cycles are just views — the plugin never moves your records around.
+1. Open the dashboard using the wallet icon in Obsidian's sidebar.
+2. Choose **Add expense**, **Add income**, or **Add contribution**.
+3. Check the date, enter the details, and save. Your period totals update automatically.
 
-## Up and running in 2 minutes
+Ready to make it yours? Rename accounts and adjust categories in **Settings → Finance Vault**. Add recurring templates and customize your cycle when you need them.
 
-1. Open **Settings → Finance Vault**.
-2. Add your accounts (wallet, bank, cards).
-3. Tweak the categories to your liking.
-4. Click the wallet icon in the sidebar (or run the **Open dashboard** command).
-5. Log your first transaction. Done — you're now tracking your finances.
+## Finding your way around
 
-Fixed templates and other refinements you can set up as you feel the need.
+The dashboard opens in **Month**, with the month name and exact date range at the top. Use the arrows to navigate and **This month** to return. **Cycle** follows the configured start day; **Year** shows a monthly breakdown.
+
+- **Overview** shows the period totals and spending charts.
+- **Transactions** lists income and expenses. Search by description, account or category as you type, combine type and account filters, and use **Clear filters** to restore the full list. Filters only affect the list, not the summary totals.
+- **Recurring & installments** contains the monthly checklist and upcoming installments. Create a template here, then use **Record entry** each month. The checklist names its month; upcoming installments always start from today.
+- **Investments** shows contributions by type or asset and lets you edit individual entries.
+
+Use **Add expense**, **Add income** or **Add contribution** for a new entry. When browsing a different period, the date defaults to its first day; when viewing the current period, it defaults to today. Always check the date before saving. Command-palette shortcuts continue to default to today.
+
+**Remaining = income − expenses − contributions.** It is the result for the selected period, not a bank balance. Totals include future entries dated inside the period; credit card totals are not a statement or outstanding debt calculation.
+
+The **Getting started** help button explains the main workflows. Settings now begin with account setup; recurring templates, cycles and storage options follow.
+
+See [the changelog](CHANGELOG.md) for release notes.
 
 ## Where your data lives
 

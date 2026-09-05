@@ -30,29 +30,13 @@ export class FinanceSettingTab extends PluginSettingTab {
 		return [
 			{
 				type: 'group',
-				heading: 'Data',
+				heading: 'Getting started',
 				items: [{
-					name: 'Data folder',
-					desc: 'Vault folder that stores monthly transactions and investment contributions.',
-					render: (setting) => {
-						setting
-							.addText((text) => text
-								.setValue(dataRootDraft)
-								.setPlaceholder('Financas')
-								.onChange((value) => {
-									dataRootDraft = value;
-								}))
-							.addButton((button) => button
-								.setButtonText('Apply')
-								.onClick(async () => {
-									try {
-										await this.financePlugin.changeDataRoot(dataRootDraft);
-										new Notice('Finance data folder updated.');
-									} catch (error) {
-										new Notice(error instanceof Error ? error.message : 'Could not change the data folder.');
-									}
-								}));
-					},
+					name: 'Make these accounts yours',
+					desc: 'Rename the default accounts below, choose their types, then review your categories. You can start recording entries immediately.',
+				}, {
+					name: 'Open your dashboard',
+					desc: 'Use the wallet icon in the sidebar. Choose a month, then add an expense, income or contribution. Recurring templates and financial cycles are optional.',
 				}],
 			},
 			{
@@ -219,6 +203,33 @@ export class FinanceSettingTab extends PluginSettingTab {
 						},
 					},
 				],
+			},
+			{
+				type: 'group',
+				heading: 'Data',
+				items: [{
+					name: 'Data folder',
+					desc: 'Vault folder that stores monthly transactions and investment contributions.',
+					render: (setting) => {
+						setting
+							.addText((text) => text
+								.setValue(dataRootDraft)
+								.setPlaceholder('Financas')
+								.onChange((value) => {
+									dataRootDraft = value;
+								}))
+							.addButton((button) => button
+								.setButtonText('Apply')
+								.onClick(async () => {
+									try {
+										await this.financePlugin.changeDataRoot(dataRootDraft);
+										new Notice('Finance data folder updated.');
+									} catch (error) {
+										new Notice(error instanceof Error ? error.message : 'Could not change the data folder.');
+									}
+								}));
+					},
+				}],
 			},
 		];
 	}
